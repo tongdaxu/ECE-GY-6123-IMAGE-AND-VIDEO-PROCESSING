@@ -24,6 +24,8 @@ def svm_loss_naive(W, X, y, reg):
   # compute the loss and the gradient
   num_classes = W.shape[1]
   num_train = X.shape[0]
+  num_dim = W.shape[0]
+
   loss = 0.0
   for i in range(num_train):
     scores = X[i].dot(W)
@@ -33,6 +35,12 @@ def svm_loss_naive(W, X, y, reg):
         continue
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
+
+        dW[:, j] += np.transpose (X[i, :])
+        dW[:, y[i]] -= np.transpose (X[i, :])
+
+        #then the effect over dW is not zero!
+
         loss += margin
 
   # Right now the loss is a sum over all training examples, but we want it
@@ -51,6 +59,8 @@ def svm_loss_naive(W, X, y, reg):
   # code above to compute the gradient.                                       #
   #############################################################################
 
+  dW /= num_train
+  dW += reg * (2 * W)
 
   return loss, dW
 
@@ -61,6 +71,10 @@ def svm_loss_vectorized(W, X, y, reg):
 
   Inputs and outputs are the same as svm_loss_naive.
   """
+  num_classes = W.shape[1]
+  num_train = X.shape[0]
+  num_dim = W.shape[0]
+
   loss = 0.0
   dW = np.zeros(W.shape) # initialize the gradient as zero
 
@@ -69,11 +83,38 @@ def svm_loss_vectorized(W, X, y, reg):
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
+
+  scores = X.dot(W) #score matrix of shape [N,C]
+  correct_class_score = scores[np.arange(num_train),y[np.arange(num_train)]]
+
+  scores -= np.reshape(correct_class_score - 1, (num_train, 1))
+
+  hinge = np.vectorize(lambda x: max (0, x))
+  scores = hinge (scores)
+
+  #finally set the j = y[j] set to 0, leave them alone at first
+  scores[np.arange(num_train),y[np.arange(num_train)]] = 0
+
+  loss = np.sum(scores)/num_train
+  loss += reg * np.sum(W * W)
+ 
   pass
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
 
+  hinge_b = np.vectorize (lambda x: (x>0))
+  scores_b = hinge_b(scores)
+
+  dW += np.transpose(np.dot(np.transpose(scores_b), X))
+
+  scores_v = np.dot(scores_b, np.ones(num_classes))
+
+  for i in range(num_train):
+    dW[:, y[i]] -= scores_v[i] * np.transpose (X[i, :])
+
+  dW /= num_train
+  dW += reg * (2 * W)
 
   #############################################################################
   # TODO:                                                                     #
