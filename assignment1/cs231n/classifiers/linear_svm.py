@@ -89,8 +89,9 @@ def svm_loss_vectorized(W, X, y, reg):
 
   scores -= np.reshape(correct_class_score - 1, (num_train, 1))
 
-  hinge = np.vectorize(lambda x: max (0, x))
-  scores = hinge (scores)
+  #hinge = np.vectorize(lambda x: max (0, x))
+  #scores = hinge (scores)
+  scores *= (scores>0)
 
   #finally set the j = y[j] set to 0, leave them alone at first
   scores[np.arange(num_train),y[np.arange(num_train)]] = 0
@@ -109,9 +110,11 @@ def svm_loss_vectorized(W, X, y, reg):
   dW += np.transpose(np.dot(np.transpose(scores_b), X))
 
   scores_v = np.dot(scores_b, np.ones(num_classes))
-
+  correct_gradient = (scores_v.reshape(scores_v.shape[0],1)*X)
+  
+  #dW[:, y] -= correct_gradient.T
   for i in range(num_train):
-    dW[:, y[i]] -= scores_v[i] * np.transpose (X[i, :])
+    dW[:, y[i]] -= correct_gradient[i] 
 
   dW /= num_train
   dW += reg * (2 * W)
