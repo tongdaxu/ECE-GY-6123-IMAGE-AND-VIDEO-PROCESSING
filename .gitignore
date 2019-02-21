@@ -2,6 +2,7 @@
 *.pyc
 *.pdf
 
+**/.ipynb_checkpoints
 PythonTutorial/*
 idea/*
 MouseProj/Literature Review/*

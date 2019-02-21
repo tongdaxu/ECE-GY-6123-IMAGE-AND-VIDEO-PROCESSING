@@ -154,7 +154,7 @@ def adam(w, dw, config=None):
     config['v'] = config['beta2']*config['v'] + (1-config['beta2'])*(gt**2)
     hat_m = config['m']/(1-np.power(config['beta1'], config['t']))
     hat_v = config['v']/(1-np.power(config['beta2'], config['t']))
-    next_w = w - config['learning_rate']*hat_m/(np.sign(hat_v)*np.sqrt(abs(hat_v)) + config['epsilon'])
+    next_w = w - config['learning_rate']*hat_m/(np.sqrt(abs(hat_v)) + config['epsilon'])
 
     pass
     ###########################################################################

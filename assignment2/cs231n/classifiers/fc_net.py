@@ -217,7 +217,7 @@ class FullyConnectedNet(object):
             if i == 0:
                 self.params[AweightName[i]] = weight_scale * np.random.randn(input_dim, hidden_dims[i])
                 self.params[AbiasName[i]] = np.zeros(hidden_dims[i])
-                if self.normalization == 'batchnorm':
+                if self.normalization == 'batchnorm' or self.normalization == 'layernorm':
                     self.params[gammaName[i]] = np.ones(hidden_dims[i])
                     self.params[betaName[i]] = np.zeros(hidden_dims[i])
                 else:
@@ -228,7 +228,7 @@ class FullyConnectedNet(object):
             else: 
                 self.params[AweightName[i]] = weight_scale * np.random.randn(hidden_dims[i-1], hidden_dims[i])
                 self.params[AbiasName[i]] = np.zeros(hidden_dims[i])
-                if self.normalization == 'batchnorm':
+                if self.normalization == 'batchnorm' or self.normalization == 'layernorm':
                     self.params[gammaName[i]] = np.ones(hidden_dims[i])
                     self.params[betaName[i]] = np.zeros(hidden_dims[i])
                 else:
@@ -307,6 +307,7 @@ class FullyConnectedNet(object):
         BX = np.empty(L-1, dtype=object)
         dBX = np.empty(L-1, dtype=object)
         Bcache = np.empty(L-1, dtype=object)
+        Dcache = np.empty(L-1, dtype=object)
         
         RX = np.empty(L-1, dtype=object)
         dRX = np.empty(L-1, dtype=object)
@@ -326,6 +327,14 @@ class FullyConnectedNet(object):
                 AX[i], Acache[i] = affine_forward(X, self.params[AweightName[i]], self.params[AbiasName[i]])
                 if self.normalization == 'batchnorm':
                     AX[i], Bcache[i] = batchnorm_forward (AX[i], self.params[gammaName[i]], self.params[betaName[i]], self.bn_params[i])
+                elif self.normalization == 'layernorm':
+                    AX[i], Bcache[i] = layernorm_forward (AX[i], self.params[gammaName[i]], self.params[betaName[i]], self.bn_params[i]) 
+                else:
+                    pass
+                if self.use_dropout:
+                    AX[i], Dcache[i] = dropout_forward (AX[i], self.dropout_param)
+                else:
+                    pass
                 RX[i], Rcache[i] = relu_forward(AX[i])
             elif i == L-1:
                 AX[i], Acache[i] = affine_forward(RX[i-1], self.params[AweightName[i]], self.params[AbiasName[i]])
@@ -333,6 +342,14 @@ class FullyConnectedNet(object):
                 AX[i], Acache[i] = affine_forward(RX[i-1], self.params[AweightName[i]], self.params[AbiasName[i]])
                 if self.normalization == 'batchnorm':
                     AX[i], Bcache[i] = batchnorm_forward (AX[i], self.params[gammaName[i]], self.params[betaName[i]], self.bn_params[i])
+                elif self.normalization == 'layernorm':
+                    AX[i], Bcache[i] = layernorm_forward (AX[i], self.params[gammaName[i]], self.params[betaName[i]], self.bn_params[i])
+                else:
+                    pass
+                if self.use_dropout:
+                    AX[i], Dcache[i] = dropout_forward (AX[i], self.dropout_param)
+                else:
+                    pass
                 RX[i], Rcache[i] = relu_forward(AX[i])
 
         scores = AX[L-1]
@@ -370,13 +387,34 @@ class FullyConnectedNet(object):
                 dAX[i], grads[AweightName[i]] ,grads[AbiasName[i]] = affine_backward(dscore, Acache[i])
             elif i == 0:
                 dRX[i] = relu_backward(dAX[i+1], Rcache[i])
+
+                if self.use_dropout:
+                    dRX[i] = dropout_backward (dRX[i], Dcache[i])
+                else:
+                    pass
+
                 if self.normalization == 'batchnorm':
                     dRX[i], grads[gammaName[i]], grads[betaName[i]]= batchnorm_backward(dRX[i], Bcache[i])
+                elif self.normalization == 'layernorm':
+                    dRX[i], grads[gammaName[i]], grads[betaName[i]]= layernorm_backward(dRX[i], Bcache[i])
+                else:
+                    pass
+
                 _, grads[AweightName[i]] ,grads[AbiasName[i]] = affine_backward(dRX[i], Acache[i])
             else:
                 dRX[i] = relu_backward(dAX[i+1], Rcache[i])
+
+                if self.use_dropout:
+                    dRX[i] = dropout_backward (dRX[i], Dcache[i])
+                else:
+                    pass
+
                 if self.normalization == 'batchnorm':
                     dRX[i], grads[gammaName[i]], grads[betaName[i]]= batchnorm_backward(dRX[i], Bcache[i])
+                elif self.normalization == 'layernorm':
+                    dRX[i], grads[gammaName[i]], grads[betaName[i]]= layernorm_backward(dRX[i], Bcache[i])
+                else:
+                    pass
                 dAX[i], grads[AweightName[i]] ,grads[AbiasName[i]] = affine_backward(dRX[i], Acache[i])
             
             grads[AweightName[i]] += self.reg*self.params[AweightName[i]]
