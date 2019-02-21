@@ -192,8 +192,14 @@ class FullyConnectedNet(object):
 
         AweightName = np.empty(L, dtype=object)
         AbiasName = np.empty(L, dtype=object)
+
+        gammaName = np.empty(L-1, dtype=object)
+        betaName = np.empty(L-1, dtype=object)
+
         AX = np.empty(L, dtype=object)
         Acache = np.empty(L, dtype=object)
+        BX = np.empty(L-1, dtype=object)
+        Bcache = np.empty(L-1, dtype=object)
         RX = np.empty(L-1, dtype=object)
         Rcache = np.empty(L-1, dtype=object)
 
@@ -201,19 +207,32 @@ class FullyConnectedNet(object):
             AweightName[i] = 'W' + str(i+1)
             AbiasName[i] = 'b' + str(i+1)
 
+            if i != L-1:
+                gammaName[i] = 'gamma' + str(i+1)
+                betaName[i] = 'beta' + str(i+1)
+            else:
+                pass
+            #gamma and beta does not exist for the last layer
+
             if i == 0:
-            #first layer
                 self.params[AweightName[i]] = weight_scale * np.random.randn(input_dim, hidden_dims[i])
                 self.params[AbiasName[i]] = np.zeros(hidden_dims[i])
+                if self.normalization == 'batchnorm':
+                    self.params[gammaName[i]] = np.ones(hidden_dims[i])
+                    self.params[betaName[i]] = np.zeros(hidden_dims[i])
+                else:
+                    pass
             elif i == L-1:
-            #last layer
                 self.params[AweightName[i]] = weight_scale * np.random.randn(hidden_dims[i-1], num_classes)
                 self.params[AbiasName[i]] = np.zeros(num_classes)
             else: 
-            #middle layers
                 self.params[AweightName[i]] = weight_scale * np.random.randn(hidden_dims[i-1], hidden_dims[i])
                 self.params[AbiasName[i]] = np.zeros(hidden_dims[i])
-            
+                if self.normalization == 'batchnorm':
+                    self.params[gammaName[i]] = np.ones(hidden_dims[i])
+                    self.params[betaName[i]] = np.zeros(hidden_dims[i])
+                else:
+                    pass
         pass
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -278,10 +297,16 @@ class FullyConnectedNet(object):
 
         AweightName = np.empty(L, dtype=object)
         AbiasName = np.empty(L, dtype=object)
+        gammaName = np.empty(L-1, dtype=object)
+        betaName = np.empty(L-1, dtype=object)
 
         AX = np.empty(L, dtype=object)
         dAX = np.empty(L, dtype=object)
         Acache = np.empty(L, dtype=object)
+
+        BX = np.empty(L-1, dtype=object)
+        dBX = np.empty(L-1, dtype=object)
+        Bcache = np.empty(L-1, dtype=object)
         
         RX = np.empty(L-1, dtype=object)
         dRX = np.empty(L-1, dtype=object)
@@ -291,13 +316,23 @@ class FullyConnectedNet(object):
             AweightName[i] = 'W' + str(i+1)
             AbiasName[i] = 'b' + str(i+1)
 
+            if i != L-1:
+                gammaName[i] = 'gamma' + str(i+1)
+                betaName[i] = 'beta' + str(i+1)
+            else:
+                pass
+
             if i == 0:
                 AX[i], Acache[i] = affine_forward(X, self.params[AweightName[i]], self.params[AbiasName[i]])
+                if self.normalization == 'batchnorm':
+                    AX[i], Bcache[i] = batchnorm_forward (AX[i], self.params[gammaName[i]], self.params[betaName[i]], self.bn_params[i])
                 RX[i], Rcache[i] = relu_forward(AX[i])
             elif i == L-1:
                 AX[i], Acache[i] = affine_forward(RX[i-1], self.params[AweightName[i]], self.params[AbiasName[i]])
             else:
                 AX[i], Acache[i] = affine_forward(RX[i-1], self.params[AweightName[i]], self.params[AbiasName[i]])
+                if self.normalization == 'batchnorm':
+                    AX[i], Bcache[i] = batchnorm_forward (AX[i], self.params[gammaName[i]], self.params[betaName[i]], self.bn_params[i])
                 RX[i], Rcache[i] = relu_forward(AX[i])
 
         scores = AX[L-1]
@@ -335,9 +370,13 @@ class FullyConnectedNet(object):
                 dAX[i], grads[AweightName[i]] ,grads[AbiasName[i]] = affine_backward(dscore, Acache[i])
             elif i == 0:
                 dRX[i] = relu_backward(dAX[i+1], Rcache[i])
+                if self.normalization == 'batchnorm':
+                    dRX[i], grads[gammaName[i]], grads[betaName[i]]= batchnorm_backward(dRX[i], Bcache[i])
                 _, grads[AweightName[i]] ,grads[AbiasName[i]] = affine_backward(dRX[i], Acache[i])
             else:
                 dRX[i] = relu_backward(dAX[i+1], Rcache[i])
+                if self.normalization == 'batchnorm':
+                    dRX[i], grads[gammaName[i]], grads[betaName[i]]= batchnorm_backward(dRX[i], Bcache[i])
                 dAX[i], grads[AweightName[i]] ,grads[AbiasName[i]] = affine_backward(dRX[i], Acache[i])
             
             grads[AweightName[i]] += self.reg*self.params[AweightName[i]]

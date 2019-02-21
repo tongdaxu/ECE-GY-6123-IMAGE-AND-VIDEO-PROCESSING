@@ -1,5 +1,7 @@
 *.log
 *.pyc
+*.pdf
 
 PythonTutorial/*
 idea/*
+MouseProj/Literature Review/*
