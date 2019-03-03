@@ -1,7 +1,9 @@
 *.log
 *.pyc
 *.pdf
+*.pyd
 
+Lecture/*
 **/.ipynb_checkpoints
 PythonTutorial/*
 idea/*
