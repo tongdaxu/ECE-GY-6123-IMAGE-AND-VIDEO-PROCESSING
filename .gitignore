@@ -2,9 +2,10 @@
 *.pyc
 *.pdf
 *.pyd
+*.enl
+*.nii
 
 Lecture/*
 **/.ipynb_checkpoints
 PythonTutorial/*
 idea/*
-MouseProj/Literature Review/*
