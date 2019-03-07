@@ -29,7 +29,7 @@ def loadnii(x):
 def getniishape(x):
 
 	"""
-	load all nii image and label into np array 
+	get the upperbound shape of image array
 	input:
 		x: number of image
 	return: 
@@ -48,14 +48,50 @@ def getniishape(x):
 	return (np.max (x_size), np.max(y_size), np.max(z_size))
 	#return (image, label)
 
-def loadallnii(x, target_x=-1, target_y=-1, target_z=-1):
+
+def zero_padding (img, target_x, target_y, target_z):
+
+		padx = (target_x-img.shape[0])//2
+		pady = (target_y-img.shape[1])//2
+		padz = (target_z-img.shape[2])//2
+
+		img_pad = np.pad (img, ((padx,padx),(pady, pady),(padz, padz)), \
+			mode='constant', constant_values=((0,0),(0,0),(0,0)))
+
+		return img_pad
+
+def show_image(img, label, indice=-1):
 
 	"""
-	load all nii image and label into np array 
+	show a slice of image with label at certain indice
+	input:
+		img: input image
+		label: input label
+		indice: cutting indice
+	return: 
+		None
+	"""
+
+	if indice ==-1:
+		indice = img.shape[0]//2
+
+	fig, ax = plt.subplots(1,2)
+
+	ax[0].imshow(img[indice], cmap='gray')
+	ax[1].imshow(label[indice])
+	plt.show()
+
+
+def loadallnii(x, target_x=-1, target_y=-1, target_z=-1, verbose=False):
+
+	"""
+	load all nii image and label into np array
 	input:
 		x: number of image
+		traget_shape: if preknown the target shape, else calculate
+		verbose: whether print the slicing out
 	return: 
-		array of tuple of (max x, max y, max z)
+		tuple of array (max x, max y, max z)
 	"""
 
 	target_shape = None
@@ -69,23 +105,34 @@ def loadallnii(x, target_x=-1, target_y=-1, target_z=-1):
 	label = np.zeros_like(image)
 
 	for i in range(x):
+
 		if i != 46:
+
 			temp_image, temp_label = loadnii(i)
 			current_shape = temp_image.shape
 			padx = (target_shape[0]-current_shape[0])//2
 			pady = (target_shape[1]-current_shape[1])//2
 			padz = (target_shape[2]-current_shape[2])//2
 
-			image[i] = np.pad (temp_image, ((padx,padx),(pady, pady),(padz, padz)), mode='constant', constant_values=((0,0),(0,0),(0,0)))
-			label[i] = np.pad (temp_label, ((padx,padx),(pady, pady),(padz, padz)), mode='constant', constant_values=((0,0),(0,0),(0,0)))
+			image[i] = np.pad (temp_image, ((padx,padx),(pady, pady),(padz, padz)), \
+				mode='constant', constant_values=((0,0),(0,0),(0,0)))
+			label[i] = np.pad (temp_label, ((padx,padx),(pady, pady),(padz, padz)), \
+				mode='constant', constant_values=((0,0),(0,0),(0,0)))
 
-			"""
-			fig, ax = plt.subplots(2,2)
-			ax[0][0].imshow(image[i][90+padx], cmap='gray')
-			ax[0][1].imshow(temp_image[90], cmap='gray')
-			ax[1][0].imshow(label[i][90+padx])
-			ax[1][1].imshow(temp_label[90])
-			plt.show()
-			"""
+			if verbose:
+
+				fig, ax = plt.subplots(2,2)
+				ax[0][0].imshow(image[i][90+padx], cmap='gray')
+				ax[0][1].imshow(temp_image[90], cmap='gray')
+				ax[1][0].imshow(label[i][90+padx])
+				ax[1][1].imshow(temp_label[90])
+				plt.show()
+
+			else:
+				pass
+
+		else:
+			pass
+
 	return (image, label)
 
