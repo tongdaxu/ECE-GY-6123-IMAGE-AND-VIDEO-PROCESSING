@@ -1,6 +1,10 @@
 '''
 Notes:
-	* N class Vnet with softmax loss
+	* N class Vnet for single channel 3d images
+Args:
+	* X of [BatchSize, Channel = 1, X-dim, Y-dim, Z-dim]
+Out:
+	* Y of [BatchSize, NumClasses, X-dim, Y-dim, Z-dim]
 Source: 
 	* This vnet.py implement forked from https://github.com/mattmacy/vnet.pytorch
 Bug fix: 
@@ -126,17 +130,23 @@ class UpTransition(nn.Module):
 		return out
 
 class OutputTransition(nn.Module):
-	def __init__(self, inChans, classnum, elu, nll):
+	def __init__(self, inChans, classnum, elu):
+
+		'''
+		Notes: 
+			* converts to number of outputs
+		Args:
+			* inChans: input channels
+			* classnum: number of classes
+		Return:
+			* None
+		'''
 		super(OutputTransition, self).__init__()
 		class_num = 3
 		self.conv1 = nn.Conv3d(inChans, 2, kernel_size=5, padding=2)
 		self.bn1 = nn.BatchNorm3d(2)
 		self.conv2 = nn.Conv3d(2, classnum, kernel_size=1)
 		self.relu1 = ELUCons(elu, 2)
-		if nll:
-			self.softmax = F.log_softmax
-		else:
-			self.softmax = F.softmax
 
 	def forward(self, x):
 		# convolve 32 down to 2 channels
@@ -144,13 +154,6 @@ class OutputTransition(nn.Module):
 		out = self.conv2(out)
 
 		# out should have shape N, C, X, Y, Z at that time
-		print(out.size())
-		# make channels the last axis
-		out = out.permute(0, 2, 3, 4, 1).contiguous()
-		# flatten
-		out = out.view(out.numel() // 2, 2)
-		out = self.softmax(out)
-		# treat channel 0 as the predicted output
 		return out
 
 class VNet(nn.Module):
@@ -158,13 +161,11 @@ class VNet(nn.Module):
 	Note:
 		VNet architecture As diagram of paper
 	'''
-	def __init__(self, classnum=2, slim=False, elu=True, nll=False):
+	def __init__(self, classnum=2, slim=False, elu=True):
 		'''
 		Args:
 			* slim: using few conv layers, else as original paper
 			* elu: using elu / PReLU
-			* nll: using nll loss other than dice loss
-
 		'''
 		super(VNet, self).__init__()
 
@@ -179,7 +180,7 @@ class VNet(nn.Module):
 			self.up_tr128 = UpTransition(256, 128, 1, elu, dropout=True)
 			self.up_tr64 = UpTransition(128, 64, 1, elu)
 			self.up_tr32 = UpTransition(64, 32, 1, elu)
-			self.out_tr = OutputTransition(32, classnum, elu, nll)
+			self.out_tr = OutputTransition(32, classnum, elu)
 
 		else:
 
@@ -192,7 +193,7 @@ class VNet(nn.Module):
 			self.up_tr128 = UpTransition(256, 128, 3, elu, dropout=True)
 			self.up_tr64 = UpTransition(128, 64, 2, elu)
 			self.up_tr32 = UpTransition(64, 32, 1, elu)
-			self.out_tr = OutputTransition(32, classnum ,elu, nll)
+			self.out_tr = OutputTransition(32, classnum ,elu)
 
 	def forward(self, x):
 		out16 = self.in_tr(x)

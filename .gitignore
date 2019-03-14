@@ -4,8 +4,12 @@
 *.pyd
 *.enl
 *.nii
+*.aux
+*.gz
+
 
 Lecture/*
 **/.ipynb_checkpoints
+**/Literature Review
 PythonTutorial/*
 idea/*
