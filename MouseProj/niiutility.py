@@ -46,19 +46,43 @@ def getniishape(x):
 		if i != 46:
 			x_size[i], y_size[i], z_size[i] = loadnii(i)[0].shape
 	return (np.max (x_size), np.max(y_size), np.max(z_size))
-	#return (image, label)
 
 
 def zero_padding (img, target_x, target_y, target_z):
+	"""
+	reshaping the img to desirable shape through zero pad or crop
+	Args:
+		img: input 3d nii array
+		target_x: target shape x
+		target_y: target shape y
+		target_z: target shape z
+	Ret:
+		img: reshaped 3d nii array
+	"""
 
-		padx = (target_x-img.shape[0])//2
-		pady = (target_y-img.shape[1])//2
-		padz = (target_z-img.shape[2])//2
+	padx = (target_x-img.shape[0])//2
+	pady = (target_y-img.shape[1])//2
+	padz = (target_z-img.shape[2])//2
 
-		img_pad = np.pad (img, ((padx,padx),(pady, pady),(padz, padz)), \
+	if padx<0:
+		img = img[-padx:padx,:,:]
+	else:
+		img = np.pad (img, ((padx,padx),(0, 0),(0, 0)), \
 			mode='constant', constant_values=((0,0),(0,0),(0,0)))
 
-		return img_pad
+	if pady <0:
+		img = img[:,-pady:pady,:]
+	else:
+		img = np.pad (img, ((0,0),(pady, pady),(0, 0)), \
+			mode='constant', constant_values=((0,0),(0,0),(0,0)))
+
+	if padz <0:
+		img = img[:,:,-padz:padz]
+	else:
+		img = np.pad (img, ((0,0),(0, 0),(padz, padz)), \
+			mode='constant', constant_values=((0,0),(0,0),(0,0)))
+
+	return img
 
 def show_image(img, label, indice=-1):
 
@@ -82,7 +106,7 @@ def show_image(img, label, indice=-1):
 	plt.show()
 
 
-def loadallnii(x, target_x=-1, target_y=-1, target_z=-1, verbose=False):
+def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=False):
 
 	"""
 	load all nii image and label into np array
@@ -101,38 +125,37 @@ def loadallnii(x, target_x=-1, target_y=-1, target_z=-1, verbose=False):
 	else:
 		target_shape = (target_x, target_y, target_z)
 
-	image = np.zeros((x, *target_shape))
-	label = np.zeros_like(image)
+	xx = x - bad_index.shape[0]
 
+	image = np.zeros((xx, *target_shape))
+	label = np.zeros_like(image, dtype=np.int8) #int 8 save memory
+
+	j = 0
 	for i in range(x):
 
-		if i != 46:
-
+		if np.isin(i, bad_index):
+			pass
+		else:
 			temp_image, temp_label = loadnii(i)
 			current_shape = temp_image.shape
 			padx = (target_shape[0]-current_shape[0])//2
-			pady = (target_shape[1]-current_shape[1])//2
-			padz = (target_shape[2]-current_shape[2])//2
 
-			image[i] = np.pad (temp_image, ((padx,padx),(pady, pady),(padz, padz)), \
-				mode='constant', constant_values=((0,0),(0,0),(0,0)))
-			label[i] = np.pad (temp_label, ((padx,padx),(pady, pady),(padz, padz)), \
-				mode='constant', constant_values=((0,0),(0,0),(0,0)))
+			image[j] = zero_padding(temp_image, *target_shape)
+			label[j] = zero_padding(temp_label, *target_shape)
 
 			if verbose:
-
+				print('image index: ' + str(i))
 				fig, ax = plt.subplots(2,2)
-				ax[0][0].imshow(image[i][90+padx], cmap='gray')
+				ax[0][0].imshow(image[j][90+padx], cmap='gray')
 				ax[0][1].imshow(temp_image[90], cmap='gray')
-				ax[1][0].imshow(label[i][90+padx])
+				ax[1][0].imshow(label[j][90+padx])
 				ax[1][1].imshow(temp_label[90])
 				plt.show()
 
 			else:
 				pass
 
-		else:
-			pass
+			j += 1
 
 	return (image, label)
 

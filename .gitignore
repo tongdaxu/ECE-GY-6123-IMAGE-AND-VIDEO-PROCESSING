@@ -6,6 +6,7 @@
 *.nii
 *.aux
 *.gz
+*.npy
 
 
 Lecture/*
