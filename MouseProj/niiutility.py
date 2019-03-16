@@ -89,7 +89,7 @@ def show_image(img, label, indice=-1):
 	"""
 	show a slice of image with label at certain indice
 	input:
-		img: input image
+		img: input image (1, X, Y, X)
 		label: input label
 		indice: cutting indice
 	return: 
@@ -97,14 +97,13 @@ def show_image(img, label, indice=-1):
 	"""
 
 	if indice ==-1:
-		indice = img.shape[0]//2
+		indice = img.shape[1]//2
 
 	fig, ax = plt.subplots(1,2)
 
-	ax[0].imshow(img[indice], cmap='gray')
-	ax[1].imshow(label[indice])
+	ax[0].imshow(img[0][indice], cmap='gray')
+	ax[1].imshow(label[0][indice], cmap='gray')
 	plt.show()
-
 
 def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=False):
 
@@ -127,8 +126,8 @@ def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=Fals
 
 	xx = x - bad_index.shape[0]
 
-	image = np.zeros((xx, *target_shape))
-	label = np.zeros_like(image, dtype=np.int8) #int 8 save memory
+	image = np.zeros((xx, 1, *target_shape), dtype=np.float32) # single channel image
+	label = np.zeros((xx, 1, *target_shape), dtype=np.float32) # triple channel label
 
 	j = 0
 	for i in range(x):
@@ -141,16 +140,12 @@ def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=Fals
 			padx = (target_shape[0]-current_shape[0])//2
 
 			image[j] = zero_padding(temp_image, *target_shape)
-			label[j] = zero_padding(temp_label, *target_shape)
+			label[j] = zero_padding(temp_label, *target_shape)/2
+
+			print('image index loaded: ' + str(i))
 
 			if verbose:
-				print('image index: ' + str(i))
-				fig, ax = plt.subplots(2,2)
-				ax[0][0].imshow(image[j][90+padx], cmap='gray')
-				ax[0][1].imshow(temp_image[90], cmap='gray')
-				ax[1][0].imshow(label[j][90+padx])
-				ax[1][1].imshow(temp_label[90])
-				plt.show()
+				show_image(image[j], label[j] , 90+padx)
 
 			else:
 				pass

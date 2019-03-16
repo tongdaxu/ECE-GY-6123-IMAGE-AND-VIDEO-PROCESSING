@@ -24,7 +24,7 @@ def overfit_test(model, localdevice, localdtype, optimizer, x, y, epochs=1):
     model = model.to(device=localdevice)  # move the model parameters to CPU/GPU
     for e in range(epochs):
         model.train()  # put model to training mode
-        x = x.to(device=localdevice, dtype=localdtype)  # move to device, e.g. GPU
+        x = x.to(device=localdevice, dtype=np.float)  # move to device, e.g. GPU
         y = y.to(device=localdevice, dtype=torch.long)
 
         scores = model(x)
