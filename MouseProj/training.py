@@ -28,7 +28,6 @@ def overfit_test(model, localdevice, localdtype, optimizer, x, y, epochs=1):
     """
 
     step = epochs//20 # 20 loss message only
-
     model = model.to(device=localdevice)  # move the model parameters to CPU/GPU
     for e in range(epochs):
         model.train()  # put model to training mode
@@ -54,7 +53,7 @@ def overfit_test(model, localdevice, localdtype, optimizer, x, y, epochs=1):
             print('epoch %d, loss = %.4f' % (e, loss.item()))
 
 
-def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_every=1):
+def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_every=1e8):
     """
     Train a model with an optimizer
     
@@ -66,7 +65,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_e
     Returns: Nothing, but prints model accuracies during training.
     """
     model = model.to(device=device)  # move the model parameters to CPU/GPU
-    model.apply(weights_init)
+    
     for e in range(epochs):
         print('epoch %d begins: ' % (e))
         for t, batch in enumerate(traindata):
@@ -92,8 +91,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_e
             optimizer.step()
             
             if t%print_every == 0:
-                print('Iteration %d, loss = %.4f' % (t, loss.item()))
-        print('epoch %d ends with: ' % (e))
+                print('     Iteration %d, loss = %.4f' % (t, loss.item()))
         check_accuracy(model, valdata, device, dtype)
 
 
@@ -111,4 +109,4 @@ def check_accuracy(model, dataloader, device, dtype):
 
             loss += dice_loss(scores, y)
 
-        print('validation loss = %.4f' % (loss/N))
+        print('     validation loss = %.4f' % (loss/N))

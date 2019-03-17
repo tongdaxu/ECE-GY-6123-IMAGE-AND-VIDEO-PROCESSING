@@ -171,12 +171,12 @@ class VNet(nn.Module):
 		if slim:
 
 			self.in_tr = InputTransition(16, elu)
-			self.down_tr32 = DownTransition(16, 1, elu)
-			self.down_tr64 = DownTransition(32, 1, elu)
-			self.down_tr128 = DownTransition(64, 1, elu, dropout=True)
-			self.up_tr128 = UpTransition(128, 128, 1, elu, dropout=True)
-			self.up_tr64 = UpTransition(128, 64, 1, elu)
-			self.up_tr32 = UpTransition(64, 32, 1, elu)
+			self.down_tr32 = DownTransition(16, 2, elu)
+			self.down_tr64 = DownTransition(32, 2, elu)
+			self.down_tr128 = DownTransition(64, 3, elu, dropout=True)
+			self.up_tr128 = UpTransition(128, 128, 3, elu, dropout=True)
+			self.up_tr64 = UpTransition(128, 64, 2, elu)
+			self.up_tr32 = UpTransition(64, 32, 2, elu)
 			self.out_tr = OutputTransition(32, classnum, elu)
 
 		else:
