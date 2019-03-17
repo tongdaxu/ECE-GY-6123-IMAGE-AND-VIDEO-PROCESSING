@@ -76,10 +76,7 @@ class InputTransition(nn.Module):
 	def forward(self, x):
 		# do we want a PRELU here as well?
 		out = self.bn1(self.conv1(x))
-
-		x16 = torch.cat((x, x, x, x, x, x, x, x,
-						 x, x, x, x, x, x, x, x), 1)
-		out = self.relu1(torch.add(out, x16))
+		out = self.relu1(torch.add(out, x))
 
 		return out
 
@@ -169,21 +166,22 @@ class VNet(nn.Module):
 		'''
 		super(VNet, self).__init__()
 
+		self.slim=slim
+
 		if slim:
 
 			self.in_tr = InputTransition(16, elu)
 			self.down_tr32 = DownTransition(16, 1, elu)
 			self.down_tr64 = DownTransition(32, 1, elu)
 			self.down_tr128 = DownTransition(64, 1, elu, dropout=True)
-			self.down_tr256 = DownTransition(128, 1, elu, dropout=True)
-			self.up_tr256 = UpTransition(256, 256, 1, elu, dropout=True)
-			self.up_tr128 = UpTransition(256, 128, 1, elu, dropout=True)
+			self.up_tr128 = UpTransition(128, 128, 1, elu, dropout=True)
 			self.up_tr64 = UpTransition(128, 64, 1, elu)
 			self.up_tr32 = UpTransition(64, 32, 1, elu)
 			self.out_tr = OutputTransition(32, classnum, elu)
 
 		else:
-
+			pass
+			"""
 			self.in_tr = InputTransition(16, elu)
 			self.down_tr32 = DownTransition(16, 2, elu)
 			self.down_tr64 = DownTransition(32, 3, elu)
@@ -194,16 +192,32 @@ class VNet(nn.Module):
 			self.up_tr64 = UpTransition(128, 64, 2, elu)
 			self.up_tr32 = UpTransition(64, 32, 1, elu)
 			self.out_tr = OutputTransition(32, classnum ,elu)
+			"""
 
 	def forward(self, x):
-		out16 = self.in_tr(x)
-		out32 = self.down_tr32(out16)
-		out64 = self.down_tr64(out32)
-		out128 = self.down_tr128(out64)
-		out256 = self.down_tr256(out128)
-		out = self.up_tr256(out256, out128)
-		out = self.up_tr128(out, out64)
-		out = self.up_tr64(out, out32)
-		out = self.up_tr32(out, out16)
-		out = self.out_tr(out)
+
+		if self.slim:
+			out16 = self.in_tr(x)
+			out32 = self.down_tr32(out16)
+			out64 = self.down_tr64(out32)
+			out128 = self.down_tr128(out64)
+			out = self.up_tr128(out128, out64)
+			out = self.up_tr64(out, out32)
+			out = self.up_tr32(out, out16)
+			out = self.out_tr(out)
+
+		else:
+			pass
+			'''
+			out16 = self.in_tr(x)
+			out32 = self.down_tr32(out16)
+			out64 = self.down_tr64(out32)
+			out128 = self.down_tr128(out64)
+			out256 = self.down_tr256(out128)
+			out = self.up_tr256(out256, out128)
+			out = self.up_tr128(out, out64)
+			out = self.up_tr64(out, out32)
+			out = self.up_tr32(out, out16)
+			out = self.out_tr(out)
+			'''
 		return out
