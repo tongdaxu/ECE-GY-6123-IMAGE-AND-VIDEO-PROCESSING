@@ -18,14 +18,9 @@ def dice_loss(input, target):
 
 	input = (input-input_min)/(input_max-input_min) # remap the output to [0, 1]
 
-	C = input.size()[1]
-
-	eplison = 1e-6
-	loss = 0
-	loss = torch.tensor(0, dtype=torch.float, requires_grad=True)
-
-	for i in range (C):
-		loss += torch.sum(2*input.narrow(1, i, 1)*target.narrow(1, i, 1))/ \
-			(torch.sum(input.narrow(1, i, 1)) + torch.sum(target.narrow(1, i, 1)) + eplison)
-
-	return 1-loss/(C)
+	return (torch.sum(2*input.narrow(1, 0, 1)*target.narrow(1, 0, 1))/ \
+			(torch.sum(input.narrow(1, 0, 1)) + torch.sum(target.narrow(1, 0, 1)) + eplison) + \
+			torch.sum(2*input.narrow(1, 1, 1)*target.narrow(1, 1, 1))/ \
+			(torch.sum(input.narrow(1, 1, 1)) + torch.sum(target.narrow(1, 1, 1)) + eplison) + \
+			torch.sum(2*input.narrow(1, 2, 1)*target.narrow(1, 2, 1))/ \
+			(torch.sum(input.narrow(1, 2, 1)) + torch.sum(target.narrow(1, 2, 1)) + eplison))
