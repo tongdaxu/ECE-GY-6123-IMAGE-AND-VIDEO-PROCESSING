@@ -10,9 +10,16 @@ def dice_loss(input, target):
 	Ret:
 		loss: 1 - DiceCoefficient
 	'''
-	C = input.size()[1]
+
 	assert input.size() == target.size() # make sure input and target has same size
-	
+
+	input_min = input.min()
+	input_max = input.max()
+
+	input = (input-input_min)/(input_max-input_min) # remap the output to [0, 1]
+
+	C = input.size()[1]
+
 	eplison = 1e-6
 	loss = 0
 

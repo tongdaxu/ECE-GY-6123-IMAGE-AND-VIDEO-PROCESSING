@@ -8,7 +8,7 @@ data_path = 'img_'
 label_path = 'bv_body'
 appendix_str = '.nii'
 
-def loadnii(x):
+def loadnii(x, xout, yout, zout):
 
 	"""
 	load the nii image and label into np array 
@@ -21,8 +21,14 @@ def loadnii(x):
 	data_file = os.path.join(image_path, data_path + str(x) + appendix_str)
 	label_file = os.path.join(image_path, label_path + str(x)+ appendix_str)
 	
-	data = (nib.load(data_file)).get_fdata()
-	label = (nib.load(label_file)).get_fdata()
+	data = ((nib.load(data_file)).get_fdata()).astype(np.float32)
+	label = ((nib.load(label_file)).get_fdata()).astype(np.float32)/2
+
+	data = zero_padding(data, xout, yout, zout)
+	label = zero_padding(label, xout, yout, zout)
+
+	data = data.reshape(1, *data.shape)
+	label= label.reshape(1, *label.shape)
 	
 	return (data, label)
 
@@ -46,7 +52,6 @@ def getniishape(x):
 		if i != 46:
 			x_size[i], y_size[i], z_size[i] = loadnii(i)[0].shape
 	return (np.max (x_size), np.max(y_size), np.max(z_size))
-
 
 def zero_padding (img, target_x, target_y, target_z):
 	"""
@@ -105,9 +110,42 @@ def show_image(img, label, indice=-1):
 	ax[1].imshow(label[0][indice], cmap='gray')
 	plt.show()
 
+def show_image_4(img, label, indice=-1):
+	"""
+	show a slice of image with label at certain indice
+	input:
+		img: input image (1, X, Y, X)
+		label: input label after one hot coding
+		indice: cutting indice
+	return: 
+		None
+	"""
+	if indice ==-1:
+		indice = img.shape[1]//2
+
+	fig, ax = plt.subplots(2,2)
+
+	ax[0][0].imshow(img[0][indice], cmap='gray')
+	ax[0][1].imshow(label[0][indice], cmap='gray')
+	ax[1][0].imshow(label[1][indice], cmap='gray')
+	ax[1][1].imshow(label[2][indice], cmap='gray')
+	plt.show()
+
+def show_batch_image(img, label, batchsize, indice=-1):
+	'''
+	show batch of Tensor as image
+
+	'''
+	img = img.numpy()
+	label = label.numpy()
+
+	for i in range(batchsize):
+		show_image_4(img[i], label[i], indice)
+
 def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=False):
 
 	"""
+	DEP!
 	load all nii image and label into np array
 	input:
 		x: number of image
@@ -135,7 +173,7 @@ def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=Fals
 		if np.isin(i, bad_index):
 			pass
 		else:
-			temp_image, temp_label = loadnii(i)
+			temp_image, temp_label = loadnii(i, target_x, target_y, target_z)
 			current_shape = temp_image.shape
 			padx = (target_shape[0]-current_shape[0])//2
 

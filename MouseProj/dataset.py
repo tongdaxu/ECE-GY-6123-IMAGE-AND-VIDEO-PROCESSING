@@ -2,40 +2,40 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset
 from scipy.ndimage import affine_transform
+from niiutility import loadnii
 
-def toTensor (sample, device):
+def toTensor (sample):
 	'''
 	Notes:
-		Convert sample to single tensor and move to device
+		Mean Reduction on image, OneHot on label, Convert one sample to single tensor
 	Args:
-		sample: dict of tensor, image in [0, 255], (N, C=1, X, Y, Z), 
-			label in {0, 0.5, 1}, (N, C=1, X, Y, Z)
+		sample: dict of ndarray, image in [0, 255], (C=1, X, Y, Z), 
+			label in {0, 0.5, 1}, (C=1, X, Y, Z)
 		device: torch.device('cuda')/torch.device('cpu')
 	Ret:
-		imageTensor in [0, 1], (N, C=1, X, Y, X)
-		labelTensor in [0, 1], (N, C=3, X, Y, X)
+		Dict of:
+			imageTensor range [0, 255] with mean 0, (C=1, X, Y, X)
+			labelTensor in [0, 1], (C=3, X, Y, X)
 	'''
 	image, label = sample['image'], sample['label']
-	imageTensor = torch.from_numpy(image/255)
-	imageTensor = imageTensor.to(device=device)
+	imageTensor = torch.from_numpy(image-90)
 
-	labelOH = np.zeros((image.shape[0], 3, image.shape[2], image.shape[3], image.shape[4]) \
+	labelOH = np.zeros((3, image.shape[1], image.shape[2], image.shape[3]) \
 		, dtype=np.float32)
 
-	labelOH[:, 0:1] = (label < 0.33).astype(np.float32)
-	labelOH[:, 1:2] = (label > 0.33).astype(np.float32)
-	labelOH[:, 2:3] = (label > 0.66).astype(np.float32)
+	labelOH[0:1] = (label < 0.33).astype(np.float32)
+	labelOH[1:2] = (label > 0.33).astype(np.float32)
+	labelOH[2:3] = (label > 0.66).astype(np.float32)
 
 	labelTensor = torch.from_numpy(labelOH)
-	labelTensor = labelTensor.to(device=device)
 
-	return imageTensor, labelTensor
-
+	return {'image': imageTensor, 'label': labelTensor}
 
 def AffineFun(img, xr, yr, zr, xm, ym, zm, order):
 	'''
 	Notes:
 		Rotate and move
+		MoveToCenter->RotateX->RotateY->RotateZ->MoveBack->MoveRandom
 	Args:
 		img: image of shape (C=1, X, Y, Z)
 		xr, yr, zr: Rotate in degree
@@ -66,6 +66,27 @@ def AffineFun(img, xr, yr, zr, xm, ym, zm, order):
 
 	Matrix = np.linalg.multi_dot([Mc, Rx, Ry, Rz, Mb, MM])
 	img[0] = affine_transform(img[0], Matrix, output_shape=img[0].shape, order=order)
+
+	return img
+
+def filpFun(img, x, y, z):
+	'''
+	Notes:
+		filp image
+	Args:
+		img: image of shape (C=1, X, Y, Z)
+		x, y, z: filp x ? filp y ? flip z ?
+	Ret:
+		img: Transformed image of shape (C=1, X, Y, Z)
+	'''
+	if x==True:
+		img = np.flip(img, axis=1)
+
+	if y==True:
+		img = np.flip(img, axis=2)
+
+	if z==True:
+		img = np.flip(img, axis=3)
 
 	return img
 
@@ -103,6 +124,17 @@ class downSample(object):
 		return {'image': downSampleFun(image, self.level, 3), \
 				'label': downSampleFun(label, self.level, 0)}
 
+class RandomFilp(object):
+	def __init__(self, p):
+		self.p = p
+
+	def __call__(self, sample):
+		x, y, z = np.random.uniform(0, 1, size=3)
+		p = self.p
+		image, label = sample['image'], sample['label']
+		return {'image': filpFun(image, (x<p), (y<p), (z<p)), \
+			'label': filpFun(label, (x<p), (y<p), (z<p))}
+
 class RandomAffine(object):
 	'''
 	Random rotation and move
@@ -125,35 +157,34 @@ class niiDataset(Dataset):
 	'''
 	pytorch dataset for bv segmentation
 	'''
-	def __init__(self, image, label, transform=None):
+	def __init__(self, index, transform=None):
 		'''
 		Args:
-			image: ndarray to image file of dtype float32
-			label: ndarray to label file of dtype float32
+			index of int
 			No Conversion of anykind in a dataset class!
 			transform(callable, default=none): transfrom on a sample
 		'''
 
-		self.image = image
-		self.label = label
-		# converting from int8 to float 64
-		
-		self.transform = transform
+		self.index=index		
+		self.transform=transform
 
 	def __len__(self):
 		'''
 		Override: return size of dataset
 		'''
-		return self.image.shape[0]
+		return (self.index).shape[0]
 
-	def __getitem__(self, index):
+	def __getitem__(self, indice):
 		'''
 		Override: integer indexing in range from 0 to len(self) exclusive.
 		type: keep as np array
 		'''
-		sample = {'image':np.copy(self.image[index]), 'label':np.copy(self.label[index])}
+		image, label = loadnii(self.index[indice], 192, 256, 256)
+		sample = {'image':image, 'label':label}
 
 		if self.transform:
 			sample = self.transform(sample)
+
+		sample = toTensor(sample)
 
 		return sample
