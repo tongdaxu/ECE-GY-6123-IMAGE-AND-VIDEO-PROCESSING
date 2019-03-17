@@ -13,6 +13,8 @@ def dice_loss(input, target):
 
 	assert input.size() == target.size() # make sure input and target has same size
 
+	eplison = 1e-5
+
 	input_min = input.min()
 	input_max = input.max()
 
