@@ -20,9 +20,9 @@ def dice_loss(input, target):
 
 	input = (input-input_min)/(input_max-input_min) # remap the output to [0, 1]
 
-	return (torch.sum(2*input.narrow(1, 0, 1)*target.narrow(1, 0, 1))/ \
+	return 1 - (torch.sum(2*input.narrow(1, 0, 1)*target.narrow(1, 0, 1))/ \
 			(torch.sum(input.narrow(1, 0, 1)) + torch.sum(target.narrow(1, 0, 1)) + eplison) + \
 			torch.sum(2*input.narrow(1, 1, 1)*target.narrow(1, 1, 1))/ \
 			(torch.sum(input.narrow(1, 1, 1)) + torch.sum(target.narrow(1, 1, 1)) + eplison) + \
 			torch.sum(2*input.narrow(1, 2, 1)*target.narrow(1, 2, 1))/ \
-			(torch.sum(input.narrow(1, 2, 1)) + torch.sum(target.narrow(1, 2, 1)) + eplison))
+			(torch.sum(input.narrow(1, 2, 1)) + torch.sum(target.narrow(1, 2, 1)) + eplison))/3
