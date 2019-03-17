@@ -22,6 +22,7 @@ def dice_loss(input, target):
 
 	eplison = 1e-6
 	loss = 0
+	loss = torch.tensor(0, dtype=torch.float, requires_grad=True)
 
 	for i in range (C):
 		loss += torch.sum(2*input.narrow(1, i, 1)*target.narrow(1, i, 1))/ \
