@@ -108,6 +108,6 @@ def check_accuracy(model, dataloader, device, dtype, cirrculum_index):
             y = y.to(device=device, dtype=dtype)
             scores = model(x)
 
-            loss += dice_loss(scores, y, dtype, cirrculum_index)
+            loss += dice_loss(scores, y, cirrculum_index)
 
         print('     validation loss = %.4f' % (loss/N))
