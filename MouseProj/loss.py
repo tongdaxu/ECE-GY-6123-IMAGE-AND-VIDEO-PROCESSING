@@ -1,6 +1,6 @@
 import torch
 
-def dice_loss(input, target):
+def dice_loss(input, target, cirrculum):
 	'''
 	Multi-class dice loss
 	All conversion happens explicitly in the train function
@@ -20,9 +20,25 @@ def dice_loss(input, target):
 
 	input = (input-input_min)/(input_max-input_min) # remap the output to [0, 1]
 
-	return 1 - (torch.sum(2*input.narrow(1, 0, 1)*target.narrow(1, 0, 1))/ \
+	if cirrculum == 0:
+
+		return 1 - (torch.sum(2*input.narrow(1, 0, 1)*target.narrow(1, 0, 1))/ \
+				(torch.sum(input.narrow(1, 0, 1)) + torch.sum(target.narrow(1, 0, 1)) + eplison))
+
+	elif cirrculum == 1:
+
+		return 1 - (torch.sum(2*input.narrow(1, 0, 1)*target.narrow(1, 0, 1))/ \
+			(torch.sum(input.narrow(1, 0, 1)) + torch.sum(target.narrow(1, 0, 1)) + eplison) + \
+			torch.sum(2*input.narrow(1, 1, 1)*target.narrow(1, 1, 1))/ \
+			(torch.sum(input.narrow(1, 1, 1)) + torch.sum(target.narrow(1, 1, 1)) + eplison))/2
+
+
+	else:
+
+		return 1 - (torch.sum(2*input.narrow(1, 0, 1)*target.narrow(1, 0, 1))/ \
 			(torch.sum(input.narrow(1, 0, 1)) + torch.sum(target.narrow(1, 0, 1)) + eplison) + \
 			torch.sum(2*input.narrow(1, 1, 1)*target.narrow(1, 1, 1))/ \
 			(torch.sum(input.narrow(1, 1, 1)) + torch.sum(target.narrow(1, 1, 1)) + eplison) + \
 			torch.sum(2*input.narrow(1, 2, 1)*target.narrow(1, 2, 1))/ \
 			(torch.sum(input.narrow(1, 2, 1)) + torch.sum(target.narrow(1, 2, 1)) + eplison))/3
+

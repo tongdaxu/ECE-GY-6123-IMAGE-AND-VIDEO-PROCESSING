@@ -35,6 +35,7 @@ def overfit_test(model, localdevice, localdtype, optimizer, x, y, epochs=1):
         y = y.to(device=localdevice, dtype=torch.long)
 
         scores = model(x)
+
         loss = F.cross_entropy(scores, y)
 
         # Zero out all of the gradients for the variables which the optimizer
@@ -53,7 +54,7 @@ def overfit_test(model, localdevice, localdtype, optimizer, x, y, epochs=1):
             print('epoch %d, loss = %.4f' % (e, loss.item()))
 
 
-def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_every=1e8):
+def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, cirrculum=100, print_every=1e8):
     """
     Train a model with an optimizer
     
@@ -76,7 +77,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_e
             y = y.to(device=device, dtype=dtype)
 
             scores = model(x)
-            loss = dice_loss(scores, y)
+            loss = dice_loss(scores, y, e//cirrculum)
 
             # Zero out all of the gradients for the variables which the optimizer
             # will update.
