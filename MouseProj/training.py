@@ -93,10 +93,10 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, cirrcul
             
             if t%print_every == 0:
                 print('     Iteration %d, loss = %.4f' % (t, loss.item()))
-        check_accuracy(model, valdata, device, dtype)
+        check_accuracy(model, valdata, device, dtype, cirrculum_index=(e//cirrculum))
 
 
-def check_accuracy(model, dataloader, device, dtype):
+def check_accuracy(model, dataloader, device, dtype，cirrculum_index):
     model.eval()  # set model to evaluation mode
     with torch.no_grad():
         loss = 0
@@ -108,6 +108,6 @@ def check_accuracy(model, dataloader, device, dtype):
             y = y.to(device=device, dtype=dtype)
             scores = model(x)
 
-            loss += dice_loss(scores, y)
+            loss += dice_loss(scores, y, dtype，cirrculum_index)
 
         print('     validation loss = %.4f' % (loss/N))
