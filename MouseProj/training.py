@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from loss import dice_loss
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -54,7 +55,7 @@ def overfit_test(model, localdevice, localdtype, optimizer, x, y, epochs=1):
             print('epoch %d, loss = %.4f' % (e, loss.item()))
 
 
-def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, cirrculum=100, print_every=1e8):
+def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_every=1e8):
     """
     Train a model with an optimizer
     
@@ -66,6 +67,8 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, cirrcul
     Returns: Nothing, but prints model accuracies during training.
     """
     model = model.to(device=device)  # move the model parameters to CPU/GPU
+    cirrculum = 0
+    scheduler = ReduceLROnPlateau(optimizer, 'min')
     
     for e in range(epochs):
         print('epoch %d begins: ' % (e))
@@ -77,7 +80,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, cirrcul
             y = y.to(device=device, dtype=dtype)
 
             scores = model(x)
-            loss = dice_loss(scores, y, e//cirrculum)
+            loss = dice_loss(scores, y, cirrculum)
 
             # Zero out all of the gradients for the variables which the optimizer
             # will update.
@@ -93,8 +96,15 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, cirrcul
             
             if t%print_every == 0:
                 print('     Iteration %d, loss = %.4f' % (t, loss.item()))
-        check_accuracy(model, valdata, device, dtype, cirrculum_index=(e//cirrculum))
-
+        
+        loss_val = check_accuracy(model, valdata, device, dtype, cirrculum_index=(cirrculum))
+        scheduler.step(loss_val)
+           
+        # When validation loss < 0.1,upgrade cirrculum, reset scheduler
+        if loss_val < 0.1 and cirrculum <= 2:
+            cirrculum += 1
+            scheduler = ReduceLROnPlateau(optimizer, 'min')
+            print('Change Currculum! Reset LR Counter!')
 
 def check_accuracy(model, dataloader, device, dtype, cirrculum_index):
     model.eval()  # set model to evaluation mode
@@ -111,3 +121,4 @@ def check_accuracy(model, dataloader, device, dtype, cirrculum_index):
             loss += dice_loss(scores, y, cirrculum_index)
 
         print('     validation loss = %.4f' % (loss/N))
+        return loss/N

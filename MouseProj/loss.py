@@ -22,13 +22,13 @@ def dice_loss(input, target, cirrculum):
 
 	if cirrculum == 0:
 
-		return 1 - (torch.sum(2*input.narrow(1, 0, 1)*target.narrow(1, 0, 1))/ \
-				(torch.sum(input.narrow(1, 0, 1)) + torch.sum(target.narrow(1, 0, 1)) + eplison))
+		return 1 - (torch.sum(2*input.narrow(1, 2, 1)*target.narrow(1, 2, 1))/ \
+				(torch.sum(input.narrow(1, 2, 1)) + torch.sum(target.narrow(1, 2, 1)) + eplison))
 
 	elif cirrculum == 1:
 
-		return 1 - (torch.sum(2*input.narrow(1, 0, 1)*target.narrow(1, 0, 1))/ \
-			(torch.sum(input.narrow(1, 0, 1)) + torch.sum(target.narrow(1, 0, 1)) + eplison) + \
+		return 1 - (torch.sum(2*input.narrow(1, 2, 1)*target.narrow(1, 2, 1))/ \
+			(torch.sum(input.narrow(1, 2, 1)) + torch.sum(target.narrow(1, 2, 1)) + eplison) + \
 			torch.sum(2*input.narrow(1, 1, 1)*target.narrow(1, 1, 1))/ \
 			(torch.sum(input.narrow(1, 1, 1)) + torch.sum(target.narrow(1, 1, 1)) + eplison))/2
 
