@@ -188,3 +188,37 @@ class niiDataset(Dataset):
 		sample = toTensor(sample)
 
 		return sample
+
+class niiPatchDataset(Dataset):
+	'''
+	patched dataset for bv segmentation
+	'''
+	def __init__(self, index, transform=None):
+		self.index = index
+		self.transform=transform
+
+	def __len__(self):
+		return (self.index).shape[0]*2*3*3
+
+	def __getitem__(self, indice):
+		
+		image_indice = indice//(2*3*3)
+		indice = indice%(2*3*3)
+
+		h_index = indice//(3*3)
+		indice = indice%(3*3)
+
+		w_index = indice//3
+		d_index = indice%3
+
+		image, label = loadnii(self.index[indice], 128, 192, 192)
+
+		image_sample = image[:, 64*h_index:64*(h_index+1), 64*w_index:64*(w_index+1) \
+			, 64*d_index:64*(d_index+1)]
+
+		label_sample = label[:, 64*h_index:64*(h_index+1), 64*w_index:64*(w_index+1) \
+			, 64*d_index:64*(d_index+1)]
+
+		sample = {'image':image_sample, 'label':label_sample}
+		sample = toTensor(sample)
+		return sample
