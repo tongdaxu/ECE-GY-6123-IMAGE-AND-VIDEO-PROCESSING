@@ -131,7 +131,7 @@ def show_image_4(img, label, indice=-1):
 	ax[1][1].imshow(label[2][indice], cmap='gray')
 	plt.show()
 
-def show_batch_image(img, label, batchsize, indice=-1):
+def show_batch_image(img, label, batchsize, indice=-1, level=4):
 	'''
 	show batch of Tensor as image
 
@@ -139,8 +139,15 @@ def show_batch_image(img, label, batchsize, indice=-1):
 	img = img.numpy()
 	label = label.numpy()
 
-	for i in range(batchsize):
-		show_image_4(img[i], label[i], indice)
+	if level==4:
+		for i in range(batchsize):
+			show_image_4(img[i], label[i], indice)
+
+	elif level ==2:
+		for i in range(batchsize):
+			show_image(img[i], label[i], indice)
+	else:
+		pass
 
 def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=False):
 

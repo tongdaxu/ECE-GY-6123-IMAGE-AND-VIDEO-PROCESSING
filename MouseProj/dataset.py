@@ -29,6 +29,8 @@ def toTensor (sample):
 
 	labelTensor = torch.from_numpy(labelOH)
 
+	labelTensor = torch.round(labelTensor)
+
 	return {'image': imageTensor, 'label': labelTensor}
 
 def AffineFun(img, xr, yr, zr, xm, ym, zm, order):
@@ -189,6 +191,39 @@ class niiDataset(Dataset):
 
 		return sample
 
+class niiMaskDataset(Dataset):
+    def __init__(self, index, transform=None):
+        self.index=index
+        self.transform=transform
+        
+    def __len__(self):
+        '''
+        Override: return size of dataset
+        '''
+        return (self.index).shape[0]
+
+
+    def __getitem__(self, indice):
+        image, label = loadnii(self.index[indice], 128, 192, 192)
+        sample = {'image':image, 'label':label}
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        sample = toTensor(sample)
+        
+        imageTensor = sample['image']
+        bodyMask = sample['label'].narrow(0, 1, 1)
+        bvMask = sample['label'].narrow(0, 2, 1)
+        bodyMask = torch.round(bodyMask)
+        imageTensor = imageTensor - torch.mean(imageTensor)
+        imageTensor = imageTensor*bodyMask
+        
+        sample = {'image':imageTensor, 'label':bvMask}
+
+        return sample
+
+    
 class niiPatchDataset(Dataset):
 	'''
 	patched dataset for bv segmentation
@@ -218,6 +253,8 @@ class niiPatchDataset(Dataset):
 
 		label_sample = label[:, 64*h_index:64*(h_index+1), 64*w_index:64*(w_index+1) \
 			, 64*d_index:64*(d_index+1)]
+
+		label_sample = label_sample - torch.mean(label_sample)
 
 		sample = {'image':image_sample, 'label':label_sample}
 		sample = toTensor(sample)
