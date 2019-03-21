@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from loss import dice_loss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+filename = 'vnet-mask-1'
+
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv3d') != -1:
@@ -12,8 +14,7 @@ def weights_init(m):
 
 def shape_test(model, localdevice, localdtype):
     
-    model.apply(weights_init)
-    x = torch.zeros((1, 1, 64, 64, 64), dtype=localdtype)
+    x = torch.zeros((1, 1, 96, 128, 128), dtype=localdtype)
     model = model.to(device=localdevice)
     scores = model(x)
     print(scores.size())
@@ -55,7 +56,7 @@ def overfit_test(model, localdevice, localdtype, optimizer, x, y, epochs=1):
             print('epoch %d, loss = %.4f' % (e, loss.item()))
 
 
-def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_every=1e8):
+def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss, epochs=1, print_every=1e8):
     """
     Train a model with an optimizer
     
@@ -68,7 +69,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_e
     """
     model = model.to(device=device)  # move the model parameters to CPU/GPU
     cirrculum = 0
-    scheduler = ReduceLROnPlateau(optimizer, 'min')
+    scheduler = ReduceLROnPlateau(optimizer, 'min',verbose=True)
     
     for e in range(epochs):
         print('epoch %d begins: ' % (e))
@@ -80,7 +81,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_e
             y = y.to(device=device, dtype=dtype)
 
             scores = model(x)
-            loss = dice_loss(scores, y, cirrculum)
+            loss = lossFun(scores, y, cirrculum)
 
             # Zero out all of the gradients for the variables which the optimizer
             # will update.
@@ -97,16 +98,23 @@ def train(model, traindata, valdata, optimizer, device, dtype, epochs=1, print_e
             if t%print_every == 0:
                 print('     Iteration %d, loss = %.4f' % (t, loss.item()))
         
-        loss_val = check_accuracy(model, valdata, device, dtype, cirrculum_index=(cirrculum))
+        loss_val = check_accuracy(model, valdata, device, dtype, 
+            cirrculum_index=(cirrculum), lossFun=lossFun)
         scheduler.step(loss_val)
            
         # When validation loss < 0.1,upgrade cirrculum, reset scheduler
         if loss_val < 0.1 and cirrculum <= 2:
             cirrculum += 1
-            scheduler = ReduceLROnPlateau(optimizer, 'min')
+            scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True)
             print('Change Currculum! Reset LR Counter!')
 
-def check_accuracy(model, dataloader, device, dtype, cirrculum_index):
+        if e%50 == 0:
+            state = {'epoch': e + 1, 'state_dict': model.state_dict(),\
+             'optimizer': optimizer.state_dict()}
+            torch.save(state, filename)
+
+
+def check_accuracy(model, dataloader, device, dtype, cirrculum_index, lossFun):
     model.eval()  # set model to evaluation mode
     with torch.no_grad():
         loss = 0
@@ -118,7 +126,10 @@ def check_accuracy(model, dataloader, device, dtype, cirrculum_index):
             y = y.to(device=device, dtype=dtype)
             scores = model(x)
 
-            loss += dice_loss(scores, y, cirrculum_index)
+            loss += lossFun(scores, y, cirrculum_index)
 
         print('     validation loss = %.4f' % (loss/N))
         return loss/N
+
+
+

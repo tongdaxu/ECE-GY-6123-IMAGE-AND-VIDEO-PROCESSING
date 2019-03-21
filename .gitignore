@@ -9,6 +9,7 @@
 *.npy
 *.jpg
 *.zip
+*.pytorch
 
 
 Lecture/*
