@@ -50,9 +50,35 @@ class LUConv(nn.Module):
 		out = self.relu1(self.bn1(self.conv1(x)))
 		return out
 
+class ResLUConv(nn.Module):
+
+	def __init__(nchan, elu):
+		super(ResLUConv, self).__init__()
+		self.conv1 = nn.Conv3d(nchan, nchan, kernel_size=5, padding=2)
+		self.bn1 = nn.BatchNorm3d(nchan)
+		self.relu1 = ELUCons(elu, nchan)
+
+		self.conv2 = nn.Conv3d(nchan, nchan, kernel_size=5, padding=2)
+		self.bn2 = nn.BatchNorm3d(nchan)
+		self.relu2 = ELUCons(elu, nchan)
+
+	def forward(self, x):
+
+		out = self.relu1(self.bn1(self.conv1(x)))
+		out = self.relu2(self.bn2(self.conv2(x)) + x)
+
+		return out
+
+def _make_rConv(nchan ,depth, elu):
+	layers = []
+	for _ in range(depth):
+		layers.append(ResLUConv(nchan, elu))
+	return nn.Sequential(*layers)
+
+
 def _make_nConv(nchan, depth, elu):
 	'''
-	Notes:
+	Notes:	
 		* packaged conv3D layers
 		* number = {2, 3}
 	'''

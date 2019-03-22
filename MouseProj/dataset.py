@@ -192,6 +192,7 @@ class niiDataset(Dataset):
 		return sample
 
 class niiMaskDataset(Dataset):
+
     def __init__(self, index, transform=None):
         self.index=index
         self.transform=transform
@@ -202,10 +203,11 @@ class niiMaskDataset(Dataset):
         '''
         return (self.index).shape[0]
 
-
     def __getitem__(self, indice):
-        image, label = loadnii(self.index[indice], 128, 192, 192)
+        image, label = loadnii(self.index[indice], 128, 192, 192, mode='zoom')
         sample = {'image':image, 'label':label}
+
+        # data are numpy array at this point
 
         if self.transform:
             sample = self.transform(sample)
@@ -223,7 +225,6 @@ class niiMaskDataset(Dataset):
 
         return sample
 
-    
 class niiPatchDataset(Dataset):
 	'''
 	patched dataset for bv segmentation
@@ -246,7 +247,7 @@ class niiPatchDataset(Dataset):
 		w_index = indice//3
 		d_index = indice%3
 
-		image, label = loadnii(self.index[indice], 128, 192, 192)
+		image, label = loadnii(self.index[indice], 192, 256, 256)
 
 		image_sample = image[:, 64*h_index:64*(h_index+1), 64*w_index:64*(w_index+1) \
 			, 64*d_index:64*(d_index+1)]

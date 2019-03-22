@@ -2,13 +2,14 @@ import os
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
+from scipy.ndimage import affine_transform, zoom
 
 image_path = 'bv_body_data/predict/'
 data_path = 'img_'
 label_path = 'bv_body'
 appendix_str = '.nii'
 
-def loadnii(x, xout, yout, zout):
+def loadnii(x, xout, yout, zout, mode='pad'):
 
 	"""
 	load the nii image and label into np array 
@@ -20,17 +21,28 @@ def loadnii(x, xout, yout, zout):
 
 	data_file = os.path.join(image_path, data_path + str(x) + appendix_str)
 	label_file = os.path.join(image_path, label_path + str(x)+ appendix_str)
-	
+
 	data = ((nib.load(data_file)).get_fdata()).astype(np.float32)
 	label = ((nib.load(label_file)).get_fdata()).astype(np.float32)/2
 
-	data = zero_padding(data, xout, yout, zout)
-	label = zero_padding(label, xout, yout, zout)
+	if mode == 'pad':
+
+		data = zero_padding(data, xout, yout, zout)
+		label = zero_padding(label, xout, yout, zout)
+
+	else:
+		x, y, z = data.shape
+		#scale the image
+		data = zoom(data, zoom=(xout/x, yout/y, zout/z))
+		label = zoom(label, zoom=(xout/x, yout/y, zout/z))
+
+		print(data.shape)
 
 	data = data.reshape(1, *data.shape)
 	label= label.reshape(1, *label.shape)
 	
 	return (data, label)
+
 
 def getniishape(x):
 
