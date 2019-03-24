@@ -209,14 +209,14 @@ class VNet(nn.Module):
 			
 			
 			self.in_tr = InputTransition(16, elu)
-			self.down_tr32 = DownTransition(16, 2, elu)
-			self.down_tr64 = DownTransition(32, 3, elu)
+			self.down_tr32 = DownTransition(16, 2, elu, dropout=True)
+			self.down_tr64 = DownTransition(32, 3, elu, dropout=True)
 			self.down_tr128 = DownTransition(64, 3, elu, dropout=True)
 			self.down_tr256 = DownTransition(128, 3, elu, dropout=True)
 			self.up_tr256 = UpTransition(256, 256, 6, elu, dropout=True)
 			self.up_tr128 = UpTransition(256, 128, 3, elu, dropout=True)
-			self.up_tr64 = UpTransition(128, 64, 2, elu)
-			self.up_tr32 = UpTransition(64, 32, 1, elu)
+			self.up_tr64 = UpTransition(128, 64, 2, elu, dropout=True)
+			self.up_tr32 = UpTransition(64, 32, 2, elu, dropout=True)
 			self.out_tr = OutputTransition(32, classnum ,elu)
 			
 

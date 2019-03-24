@@ -12,9 +12,11 @@ def weights_init(m):
         nn.init.kaiming_normal_(m.weight)
         m.bias.data.zero_()
 
-def shape_test(model, localdevice, localdtype):
+def shape_test(model, localdevice, localdtype, shape):
     
-    x = torch.zeros((1, 1, 96, 128, 128), dtype=localdtype)
+    sx, sy, sz = shape
+
+    x = torch.zeros((1, 1, sx, sy, sz), dtype=localdtype)
     model = model.to(device=localdevice)
     scores = model(x)
     print(scores.size())
@@ -69,7 +71,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
     """
     model = model.to(device=device)  # move the model parameters to CPU/GPU
     cirrculum = 0
-    scheduler = ReduceLROnPlateau(optimizer, 'min',verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', patience=30, verbose=True)
     
     for e in range(epochs):
         print('epoch %d begins: ' % (e))
@@ -81,7 +83,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
             y = y.to(device=device, dtype=dtype)
 
             scores = model(x)
-            loss = lossFun(scores, y, cirrculum)
+            loss = lossFun(scores, y)
 
             # Zero out all of the gradients for the variables which the optimizer
             # will update.
@@ -105,7 +107,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
         # When validation loss < 0.1,upgrade cirrculum, reset scheduler
         if loss_val < 0.1 and cirrculum <= 2:
             cirrculum += 1
-            scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True)
+            # scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True)
             print('Change Currculum! Reset LR Counter!')
 
         if e%50 == 0:
@@ -126,7 +128,7 @@ def check_accuracy(model, dataloader, device, dtype, cirrculum_index, lossFun):
             y = y.to(device=device, dtype=dtype)
             scores = model(x)
 
-            loss += lossFun(scores, y, cirrculum_index)
+            loss += lossFun(scores, y)
 
         print('     validation loss = %.4f' % (loss/N))
         return loss/N

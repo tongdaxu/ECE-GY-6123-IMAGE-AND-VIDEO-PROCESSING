@@ -1,5 +1,47 @@
 import torch
 
+def IoU(input, target, cirrculum=0):
+	'''
+	Intersect over Union for bounding box regression:
+	x, y, z: upper left corner
+	dx, dy, dz: length
+	N, d
+	'''
+
+	N = input.size()[0]
+
+	eplison = 1e-5
+
+	loss = 0
+
+	for i in range(N):
+
+		x  = target[i,0]
+		dx = target[i,1]
+		y  = target[i,2]
+		dy = target[i,3]
+		z  = target[i,4]
+		dz = target[i,5]
+
+		xhat  = input[i,0]
+		dxhat = torch.abs (input[i,1])
+		yhat  = input[i,2]
+		dyhat = torch.abs (input[i,3])
+		zhat  = input[i,4]
+		dzhat = torch.abs (input[i,5])
+
+		zero = torch.tensor(0, dtype=torch.float, device=torch.device('cuda'))
+		ix = torch.min(xhat+dxhat, x+dx) - torch.max(xhat, x)
+		iy = torch.min(yhat+dyhat, y+dy) - torch.max(yhat, y)
+		iz = torch.min(zhat+dzhat, z+dz) - torch.max(zhat, z)
+
+		dice_coeff = (2*ix/(dx+dxhat+eplison)+2*iy/(dy+dyhat+eplison)+2*iz/(dz+dzhat+eplison))/3
+
+		loss += 1 - dice_coeff
+
+	return loss/N
+
+
 def dice_loss_single(input, target, cirrculum):
 	'''
 	Multi-class dice loss

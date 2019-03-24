@@ -104,12 +104,24 @@ class FCConv(nn.Module):
         x = self.conv(x)
         return x
 
+class Interpolate(nn.Module):
+    def __init__(self, size, mode):
+        super(Interpolate, self).__init__()
+        self.interp = nn.functional.interpolate
+        self.size = size
+        self.mode = mode
+        
+    def forward(self, x):
+        x = self.interp(x, size=self.size, mode=self.mode, align_corners=False)
+        return x
+
 class Atrous(nn.Module):
     def __init__(self, classnum):
         
         super(Atrous, self).__init__()
         '''
         expecting input size 96*128*128
+        now 64*96*96
         '''
 
         self.F1 = AdjConv(1, 16, 1) # -2
@@ -117,12 +129,12 @@ class Atrous(nn.Module):
         self.F3 = AdjConv(16, 32, 2) # -4
         self.F4 = AdjConv(32, 32, 4) # -8
         self.F5 = AdjConv(32, 64, 8) # -16
-        self.F6 = AdjConv(64, 64, 16) # -32
+        # self.F6 = AdjConv(64, 64, 16) # -32
 
         self.O1 = KeepConv(64, 16, 1) # keep size
         self.O2 = FCConv(16, classnum) # 1x1 kernel, keep size
 
-        self.upsample = nn.Upsample(scale_factor=(3,2,2), mode='nearest')
+        self.upsample = Interpolate(size=(64, 96, 96), mode='trilinear')
 
         pass
     
@@ -133,7 +145,7 @@ class Atrous(nn.Module):
         x = self.F3(x)
         x = self.F4(x)
         x = self.F5(x)
-        x = self.F6(x)
+        # x = self.F6(x)
         x = self.O1(x)
         x = self.O2(x)
         x = self.upsample(x)

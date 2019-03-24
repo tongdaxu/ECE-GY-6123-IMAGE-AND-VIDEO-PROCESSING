@@ -9,7 +9,10 @@ data_path = 'img_'
 label_path = 'bv_body'
 appendix_str = '.nii'
 
-def loadnii(x, xout, yout, zout, mode='pad'):
+
+
+
+def loadnii(x, xout, yout, zout, mode='pad', mask=False):
 
 	"""
 	load the nii image and label into np array 
@@ -35,8 +38,6 @@ def loadnii(x, xout, yout, zout, mode='pad'):
 		#scale the image
 		data = zoom(data, zoom=(xout/x, yout/y, zout/z))
 		label = zoom(label, zoom=(xout/x, yout/y, zout/z))
-
-		print(data.shape)
 
 	data = data.reshape(1, *data.shape)
 	label= label.reshape(1, *label.shape)
