@@ -179,6 +179,66 @@ class OutputTransition(nn.Module):
 		# out should have shape N, C, X, Y, Z at that time
 		return out
 
+class FCRB(nn.Module):
+    def __init__(self, in_chan, out_chan):
+        super(FCRB, self).__init__()
+        self.affine = nn.Linear(in_chan, out_chan)
+        self.bn = nn.BatchNorm1d(out_chan)
+        self.relu = nn.ReLU(inplace=True)
+        self.dp = nn.Dropout()
+
+    def forward(self, x):
+        out = self.dp(self.relu(self.bn(self.affine(x))))
+        return out
+
+class LNet(nn.Module):
+	'''
+	Half V Net
+	'''
+	def __init__(self, img_size, out_size=6, elu=True):
+		'''
+		Args:
+			* slim: using few conv layers, else as original paper
+			* elu: using elu / PReLU
+		'''
+		super(LNet, self).__init__()
+
+		x, y, z = img_size
+
+		self.in_tr = InputTransition(16, elu)
+		self.down_tr32 = DownTransition(16, 2, elu, dropout=True) # /2
+		self.down_tr64 = DownTransition(32, 3, elu, dropout=True) # /4
+		self.down_tr128 = DownTransition(64, 3, elu, dropout=True) # /8
+		self.down_tr256 = DownTransition(128, 3, elu, dropout=True) # /16
+		self.down_tr512 = DownTransition(256, 4, elu, dropout=True) # /32
+		self.gap = nn.AvgPool3d(kernel_size = (x//32,y//32,z//32)) # N, C, 1, 1, 1
+
+		channel_num = 512
+
+		self.fc1 = FCRB(channel_num, channel_num)
+		self.fc2 = nn.Linear(channel_num, out_size)
+
+
+	def forward(self, x):
+
+		batch_size = x.size()[0] # get batch size
+
+		out = self.in_tr(x)
+		out = self.down_tr32(out)
+		out = self.down_tr64(out)
+		out = self.down_tr128(out)
+		out = self.down_tr256(out)
+		out = self.down_tr512(out)
+
+		out = self.gap(out)
+		out = out.view(batch_size, -1)
+
+		out = self.fc1(out)
+		out = self.fc2(out)
+
+		return out
+
+
 class VNet(nn.Module):
 	'''
 	Note:

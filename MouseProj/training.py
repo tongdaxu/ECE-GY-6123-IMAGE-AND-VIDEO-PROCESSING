@@ -58,7 +58,7 @@ def overfit_test(model, localdevice, localdtype, optimizer, x, y, epochs=1):
             print('epoch %d, loss = %.4f' % (e, loss.item()))
 
 
-def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss, epochs=1, print_every=1e8):
+def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss, epochs=1):
     """
     Train a model with an optimizer
     
@@ -74,7 +74,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
     scheduler = ReduceLROnPlateau(optimizer, mode='min', patience=30, verbose=True)
     
     for e in range(epochs):
-        print('epoch %d begins: ' % (e))
+        epoch_loss = 0
         for t, batch in enumerate(traindata):
             model.train()  # put model to training mode
             x = batch['image']
@@ -84,6 +84,9 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
 
             scores = model(x)
             loss = lossFun(scores, y)
+
+            # avoid gradient
+            epoch_loss += loss.item()
 
             # Zero out all of the gradients for the variables which the optimizer
             # will update.
@@ -97,8 +100,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
             # computed by the backwards pass.
             optimizer.step()
             
-            if t%print_every == 0:
-                print('     Iteration %d, loss = %.4f' % (t, loss.item()))
+        print('Epoch {0} finished ! Training Loss: {1}'.format(e, epoch_loss / t))
         
         loss_val = check_accuracy(model, valdata, device, dtype, 
             cirrculum_index=(cirrculum), lossFun=lossFun)
@@ -109,11 +111,6 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
             cirrculum += 1
             # scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True)
             print('Change Currculum! Reset LR Counter!')
-
-        if e%50 == 0:
-            state = {'epoch': e + 1, 'state_dict': model.state_dict(),\
-             'optimizer': optimizer.state_dict()}
-            torch.save(state, filename)
 
 
 def check_accuracy(model, dataloader, device, dtype, cirrculum_index, lossFun):
