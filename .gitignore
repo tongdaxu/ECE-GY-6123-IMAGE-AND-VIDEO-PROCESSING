@@ -10,7 +10,8 @@
 *.jpg
 *.zip
 *.pytorch
-
+*.gif
+CA04/data/
 
 Lecture/*
 **/.ipynb_checkpoints
