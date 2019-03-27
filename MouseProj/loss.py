@@ -91,7 +91,6 @@ def dice_loss(input, target, cirrculum):
 	Ret:
 		loss: 1 - DiceCoefficient
 	'''
-	print(input.size(), target.size())
 	assert input.size() == target.size() # make sure input and target has same size
 
 	eplison = 1e-5

@@ -11,6 +11,7 @@
 *.zip
 *.pytorch
 *.gif
+*.pth
 CA04/data/
 
 Lecture/*
