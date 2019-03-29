@@ -3,6 +3,7 @@ import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
 from scipy.ndimage import affine_transform, zoom
+import datetime
 
 image_path = 'bv_body_data/predict/'
 data_path = 'img_'
@@ -44,6 +45,10 @@ def loadnii(x, xout, yout, zout, mode='pad', mask=False):
 	
 	return (data, label)
 
+def savenii(img): 
+	timestamp = datetime.datetime.now()
+	filename = 'result '+ str(timestamp) + '.nii'
+	nib.save(img, filename)
 
 def getniishape(x):
 
