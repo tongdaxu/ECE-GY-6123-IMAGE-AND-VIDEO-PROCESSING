@@ -4,8 +4,11 @@ import torch.nn.functional as F
 from loss import dice_loss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from niiutility import *
+from scipy.ndimage import affine_transform, zoom
+from dataset import upSampleFun
+import datetime
 
-filename = 'vnet-mask-01'
+filename = 'vnet-rate-2'
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -112,8 +115,8 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
             cirrculum += 1
             scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True)
             state = {'epoch': e + 1, 'state_dict': model.state_dict(),\
-             'optimizer': optimizer.state_dict()}
-            torch.save(state, filename)
+             'optimize r': optimizer.state_dict()}
+            torch.save(state, filename + str(datetime.datetime.now()))
             print('Change Currculum! Reset LR Counter!')
 
 
@@ -137,7 +140,6 @@ def check_accuracy(model, dataloader, device, dtype, cirrculum, lossFun):
 def check_img(model, dataloader, device, dtype):
     model.eval()  # set model to evaluation mode
     with torch.no_grad():
-        loss = 0
         N = len(dataloader)
         for t, batch in enumerate(dataloader):
             x = batch['image']
@@ -153,9 +155,17 @@ def check_img(model, dataloader, device, dtype):
             
             show_batch_image(x,y,batch_size, level=4)
             show_batch_image(x,mask_predict,batch_size, level=4)
-
-        print('     validation loss = %.4f' % (loss/N))
-        return loss/N
+            
+            
+            mask_predict_resize = upSampleFun(mask_predict.numpy()[0,1:2], 4, 0)
+            mask_predict_resize = mask_predict_resize.reshape(192, 256, 256)
+            mask_predict_resize = (mask_predict_resize > 0.5).astype(np.float32)
+            shape = getniishape(t)
+            mask_predict_resize = zero_padding(mask_predict_resize, shape[0], shape[1], shape[2])
+            
+            savenii(mask_predict_resize, str(t))
+            
+            pass
 
 
 

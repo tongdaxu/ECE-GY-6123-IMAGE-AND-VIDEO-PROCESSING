@@ -142,6 +142,25 @@ def filpFun(img, x, y, z):
 
 	return img
 
+def upSampleFun(img, level, order):
+	'''
+	Args:
+		img: shape [1, X, Y, Z]
+		level: scaling factor of downsampling
+		order: 3 for image, 0 for label
+	Ret:
+		imgout: down sampled image of shape [1, X//level, Y//level, Z//level]
+	'''
+	if level == 1:
+		return img
+	else:
+		_, x, y, z = img.shape
+
+		imgout = np.zeros([1, x*level, y*level, z*level], dtype=np.float32)
+		Matrix = np.array([[1/level, 0, 0, 0],[0, 1/level, 0, 0],[0, 0, 1/level, 0],[0, 0, 0, 1]])
+		imgout[0] = affine_transform(img[0], Matrix, output_shape=imgout[0].shape, order=order)
+		return imgout
+
 def downSampleFun(img, level, order):
 	'''
 	Args:

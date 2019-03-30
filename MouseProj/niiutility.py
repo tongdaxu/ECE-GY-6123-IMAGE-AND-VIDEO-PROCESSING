@@ -10,9 +10,6 @@ data_path = 'img_'
 label_path = 'bv_body'
 appendix_str = '.nii'
 
-
-
-
 def loadnii(x, xout, yout, zout, mode='pad', mask=False):
 
 	"""
@@ -45,10 +42,11 @@ def loadnii(x, xout, yout, zout, mode='pad', mask=False):
 	
 	return (data, label)
 
-def savenii(img): 
+def savenii(img, PATH): 
 	timestamp = datetime.datetime.now()
-	filename = 'result '+ str(timestamp) + '.nii'
-	nib.save(img, filename)
+	filename = PATH + str(timestamp) + appendix_str
+	array_img = nib.Nifti1Image(img, np.eye(4))
+	nib.save(array_img, filename)
 
 def getniishape(x):
 
@@ -59,17 +57,10 @@ def getniishape(x):
 	return: 
 		array of tuple of (max x, max y, max z)
 	"""
+	label_file = os.path.join(image_path, label_path + str(x)+ appendix_str)
+	label = ((nib.load(label_file)).get_fdata()).astype(np.float32)/2
 
-	#size_data = loadnii(0)[0]
-	x_size = np.zeros(x)
-	y_size = np.zeros(x)
-	z_size = np.zeros(x)
-	#label = np.zeros_like(image)
-
-	for i in range(x):
-		if i != 46:
-			x_size[i], y_size[i], z_size[i] = loadnii(i)[0].shape
-	return (np.max (x_size), np.max(y_size), np.max(z_size))
+	return label.shape
 
 def zero_padding (img, target_x, target_y, target_z):
 	"""
