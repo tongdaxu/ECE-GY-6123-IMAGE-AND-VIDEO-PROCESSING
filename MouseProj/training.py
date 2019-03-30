@@ -116,7 +116,7 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
             scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True)
             state = {'epoch': e + 1, 'state_dict': model.state_dict(),\
              'optimize r': optimizer.state_dict()}
-            torch.save(state, filename + str(datetime.datetime.now()))
+            torch.save(state, filename + str(datetime.datetime.now())+'.pth')
             print('Change Currculum! Reset LR Counter!')
 
 

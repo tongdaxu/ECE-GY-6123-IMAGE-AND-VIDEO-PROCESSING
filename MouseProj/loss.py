@@ -60,24 +60,24 @@ def dice_loss_single(input, target, cirrculum):
 	return 1 - (torch.sum(2*input*target.narrow(1, 0, 1))/ \
 			(torch.sum(input) + torch.sum(target.narrow(1, 0, 1)) + eplison))
 
-def dice_loss_double(input, target, cirrculum):
+def dice_loss_2(input, target, cirrculum):
 
-	intput_C1 = input.narrow(1, 0, 1)
-	intput_C2 = input.narrow(1, 1, 1)
+	intput_C1 = input.narrow(1, 1, 1)
+	intput_C2 = input.narrow(1, 2, 1)
 	intput_C1 = (intput_C1 - intput_C1.min())/(intput_C1.max()-intput_C1.min() + eplison)
 	intput_C2 = (intput_C2 - intput_C2.min())/(intput_C2.max()-intput_C2.min() + eplison)
 
 	if cirrculum == 0:
 	# Seg the body mask first
-		return 1 - (torch.sum(2*intput_C1*target.narrow(1, 0, 1))/ \
-			(torch.sum(intput_C1) + torch.sum(target.narrow(1, 0, 1)) + eplison))
+		return 1 - (torch.sum(2*intput_C1*target.narrow(1, 1, 1))/ \
+			(torch.sum(intput_C1) + torch.sum(target.narrow(1, 1, 1)) + eplison))
 
 	else:
 	# Seg the body and BV altogehter
-		return 1 - (torch.sum(2*intput_C1*target.narrow(1, 0, 1))/ \
-			(torch.sum(intput_C1) + torch.sum(target.narrow(1, 0, 1)) + eplison) + \
-			torch.sum(2*intput_C2*target.narrow(1, 1, 1))/ \
-			(torch.sum(intput_C2) + torch.sum(target.narrow(1, 1, 1)) + eplison))/2
+		return 1 - (torch.sum(2*intput_C1*target.narrow(1, 1, 1))/ \
+			(torch.sum(intput_C1) + torch.sum(target.narrow(1, 1, 1)) + eplison) + \
+			torch.sum(2*intput_C2*target.narrow(1, 2, 1))/ \
+			(torch.sum(intput_C2) + torch.sum(target.narrow(1, 2, 1)) + eplison))/2
 
 
 
