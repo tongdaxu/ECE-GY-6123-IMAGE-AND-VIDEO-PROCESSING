@@ -1,4 +1,5 @@
 import torch
+eplison = 1e-5
 
 def IoU(input, target, cirrculum=0):
 	'''
@@ -53,7 +54,6 @@ def dice_loss_single(input, target, cirrculum):
 		loss: 1 - DiceCoefficient
 	'''
 
-	eplison = 1e-5
 	input = (input - input.min())/(input.max()-input.min() + eplison)
 
 
@@ -79,8 +79,6 @@ def dice_loss_2(input, target, cirrculum):
 			torch.sum(2*intput_C2*target.narrow(1, 2, 1))/ \
 			(torch.sum(intput_C2) + torch.sum(target.narrow(1, 2, 1)) + eplison))/2
 
-
-
 def dice_loss(input, target, cirrculum):
 	'''
 	Multi-class dice loss
@@ -93,7 +91,6 @@ def dice_loss(input, target, cirrculum):
 	'''
 	assert input.size() == target.size() # make sure input and target has same size
 
-	eplison = 1e-5
 
 	intput_C1 = input.narrow(1, 0, 1)
 	intput_C2 = input.narrow(1, 1, 1)
