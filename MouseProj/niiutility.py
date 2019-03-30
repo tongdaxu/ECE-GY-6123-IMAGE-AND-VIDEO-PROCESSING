@@ -1,9 +1,10 @@
 import os
+import datetime
+
 import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
 from scipy.ndimage import affine_transform, zoom
-import datetime
 
 image_path = 'bv_body_data/predict/'
 data_path = 'img_'
@@ -107,49 +108,32 @@ def zero_padding (img, target_x, target_y, target_z):
 
 	return img	
 
+
 def show_image(img, label, indice=-1):
-
 	"""
 	show a slice of image with label at certain indice
-	input:
-		img: input image (1, X, Y, X)
-		label: input label
-		indice: cutting indice
-	return: 
-		None
+	Args:
+		* img: input image (1, X, Y, Z)
+		* label: input label after one hot coding (C, X, Y, Z)
+		* indice: cutting indice
+	Ret: 
+		* None
 	"""
-
 	if indice ==-1:
 		indice = img.shape[1]//2
 
-	fig, ax = plt.subplots(1,2)
-
+	N = label.shape[0]
+	fig, ax = plt.subplots(1, N+1, figsize=(12, 4), sharey=True)
 	ax[0].imshow(img[0][indice], cmap='gray')
-	ax[1].imshow(label[0][indice], cmap='gray')
+	# have to show the original image
+
+	for i in range(N):
+		ax[i+1].imshow(label[i][indice], cmap='gray')
 	plt.show()
 
-def show_image_4(img, label, indice=-1):
-	"""
-	show a slice of image with label at certain indice
-	input:
-		img: input image (1, X, Y, X)
-		label: input label after one hot coding
-		indice: cutting indice
-	return: 
-		None
-	"""
-	if indice ==-1:
-		indice = img.shape[1]//2
+	pass
 
-	fig, ax = plt.subplots(2,2)
-
-	ax[0][0].imshow(img[0][indice], cmap='gray')
-	ax[0][1].imshow(label[0][indice], cmap='gray')
-	ax[1][0].imshow(label[1][indice], cmap='gray')
-	ax[1][1].imshow(label[2][indice], cmap='gray')
-	plt.show()
-
-def show_batch_image(img, label, batchsize, indice=-1, level=4):
+def show_batch_image(img, label, batchsize, indice=-1):
 	'''
 	show batch of Tensor as image
 
@@ -157,15 +141,11 @@ def show_batch_image(img, label, batchsize, indice=-1, level=4):
 	img = img.numpy()
 	label = label.numpy()
 
-	if level==4:
-		for i in range(batchsize):
-			show_image_4(img[i], label[i], indice)
+	for i in range(batchsize):
+		show_image(img[i], label[i], indice)
 
-	elif level ==2:
-		for i in range(batchsize):
-			show_image(img[i], label[i], indice)
-	else:
-		pass
+	pass
+
 
 def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=False):
 

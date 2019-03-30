@@ -1,14 +1,14 @@
+import datetime
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from loss import dice_loss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from niiutility import *
 from scipy.ndimage import affine_transform, zoom
-from dataset import upSampleFun
-import datetime
 
-filename = 'vnet-rate-2'
+from loss import dice_loss
+from niiutility import *
+from dataset import upSampleFun
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -78,8 +78,8 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss
             cirrculum += 1
             scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True)
             state = {'epoch': e + 1, 'state_dict': model.state_dict(),\
-             'optimize r': optimizer.state_dict()}
-            torch.save(state, filename + str(datetime.datetime.now())+'.pth')
+                'optimize r': optimizer.state_dict()}
+            torch.save(state, 'checkpoint' + str(datetime.datetime.now())+'.pth')
             print('Change Currculum! Reset LR Counter!')
 
 
@@ -100,28 +100,40 @@ def check_accuracy(model, dataloader, device, dtype, cirrculum, lossFun):
         print('     validation loss = %.4f' % (loss/N))
         return loss/N
 
-def check_img(model, dataloader, device, dtype):
+
+
+def check_img(model, dataloader, device, dtype, cirrculum, lossFun):
     model.eval()  # set model to evaluation mode
+
     with torch.no_grad():
+
         N = len(dataloader)
         for t, batch in enumerate(dataloader):
+
             x = batch['image']
             y = batch['label']
+            
             x = x.to(device=device, dtype=dtype)  # move to device, e.g. GPU
             y = y.to(device=device, dtype=dtype)
-            mask_predict = model(x)
-            batch_size = x.size()[0]
             
+            mask_predict = model(x)
+
+            loss = lossFun(mask_predict, y, cirrculum=cirrculum)
+            print('loss = %.4f' % loss)
+
+            # Show and save image
+
+            batch_size = x.size()[0]
             x = x.cpu()
             y = y.cpu()
+
             mask_predict = mask_predict.cpu()
             
-            show_batch_image(x,y,batch_size, level=4)
-            show_batch_image(x,mask_predict,batch_size, level=4)
-            
+            show_batch_image(x,y,batch_size)
+            show_batch_image(x,mask_predict,batch_size)
             
             mask_predict_resize = upSampleFun(mask_predict.numpy()[0,1:2], 4, 0)
-            mask_predict_resize = mask_predict_resize.reshape(192, 256, 256)
+            mask_predict_resize = mask_predict_resize.squeeze(axis=0)
             mask_predict_resize = (mask_predict_resize > 0.5).astype(np.float32)
             shape = getniishape(t)
             mask_predict_resize = zero_padding(mask_predict_resize, shape[0], shape[1], shape[2])

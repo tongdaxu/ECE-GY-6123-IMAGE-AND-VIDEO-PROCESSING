@@ -41,6 +41,7 @@ def IoU(input, target, cirrculum=0):
 
 	return loss/N
 
+
 def dice_coeff(input, target):
 	'''
 	Base soft dice coeff calculation for single class
@@ -97,4 +98,4 @@ def dice_loss_3(input, target, cirrculum):
 	else:
 		return (dice_loss(input, target, 0) +\
 				dice_loss(input, target, 1) +\
-				dice_loss(input, target, 2))
+				dice_loss(input, target, 2))/3
