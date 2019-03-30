@@ -5,13 +5,14 @@ import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
 from scipy.ndimage import affine_transform, zoom
+from tqdm import tqdm
 
 image_path = 'bv_body_data/predict/'
 data_path = 'img_'
 label_path = 'bv_body'
 appendix_str = '.nii'
 
-def loadnii(x, xout, yout, zout, mode='pad'):
+def loadnii(x, xout=-1, yout=-1, zout=-1, mode='pad'):
 
 	"""
 	load the nii image and label into np array 
@@ -27,21 +28,82 @@ def loadnii(x, xout, yout, zout, mode='pad'):
 	data = ((nib.load(data_file)).get_fdata()).astype(np.float32)
 	label = ((nib.load(label_file)).get_fdata()).astype(np.float32)/2
 
-	if mode == 'pad':
+	if xout < 0:
+		data = data.reshape(1, *data.shape)
+		label= label.reshape(1, *label.shape)
 
-		data = zero_padding(data, xout, yout, zout)
-		label = zero_padding(label, xout, yout, zout)
-
-	else:
-		x, y, z = data.shape
-		#scale the image
-		data = zoom(data, zoom=(xout/x, yout/y, zout/z))
-		label = zoom(label, zoom=(xout/x, yout/y, zout/z))
-
-	data = data.reshape(1, *data.shape)
-	label= label.reshape(1, *label.shape)
+		return (data, label) # perserve original image shape
 	
-	return (data, label)
+	else:
+
+		if mode == 'pad':
+			data = zero_padding(data, xout, yout, zout)
+			label = zero_padding(label, xout, yout, zout)
+
+		else:
+			x, y, z = data.shape
+			#scale the image
+			data = zoom(data, zoom=(xout/x, yout/y, zout/z))
+			label = zoom(label, zoom=(xout/x, yout/y, zout/z))
+
+		data = data.reshape(1, *data.shape)
+		label= label.reshape(1, *label.shape)
+
+		return (data, label)
+
+def findBV(n):
+	'''
+	Find BV for single image of shape [1, X, Y, Z] and channel [1, X, Y, Z]
+	'''
+	
+	stride = 8
+
+	dict = {}
+
+	data, label = loadnii(n) # load the original image
+	label = (label > 0.66).astype(np.float32)
+
+	_, h, w, d = data.shape
+	x, y, z = 0, 0, 0
+
+	bv = np.sum(label)
+
+	while x < h-127:
+		y = 0
+		while y < w-127:
+			z = 0
+			while z < d-127:
+				datanew = data[0:1, x:x+128, y:y+128, z:z+128]
+				labelnew = label[0:1, x:x+128, y:y+128, z:z+128]
+				bvnew = np.sum(labelnew)
+
+				if bvnew > bv*0.95:
+					dict[(n, x, y, z)] = 1
+				elif bvnew < bv*0.6:
+					dict[(n, x, y, z)] = 0
+				else:
+					pass
+
+				z += stride
+			y += stride
+		x += stride 
+
+	# code for debugging
+	# v = list (dict.values())
+	# print('image {0} generate {1} samples, with positive rate = {2:.4f}'.format (n, len(v), np.sum(v)/len(v)))
+
+	return dict
+
+
+def generateSW(nlist):
+	dict = {}
+	for n in tqdm (nlist):
+		dictTemp = findBV(n)
+		dict.update(dictTemp)
+		v = list (dict.values())
+	print (' In total generate {0} samples, with overall positive rate = {1:.4f}'.format (len(v), np.sum(v)/len(v)))
+
+	return dict
 
 def savenii(img, img_name): 
 	'''

@@ -218,7 +218,6 @@ class LNet(nn.Module):
 		self.fc1 = FCRB(channel_num, channel_num)
 		self.fc2 = nn.Linear(channel_num, out_size)
 
-
 	def forward(self, x):
 
 		batch_size = x.size()[0] # get batch size
@@ -325,3 +324,46 @@ class WNet(nn.Module):
 		bv = self.VNet2(x*bodyMask)
 
 		return torch.cat((body, bv), 1)
+
+class VNetMask(nn.Module):
+	'''
+	Note:
+		VNet architecture As diagram of paper
+	'''
+	def __init__(self, elu=True):
+		'''
+		Args:
+			* slim: using few conv layers, else as original paper
+			* elu: using elu / PReLU
+		'''
+		super(VNetMask, self).__init__()
+
+		self.in_tr = InputTransition(16, elu)
+		self.down_tr32 = DownTransition(16, 1, elu)
+		self.down_tr64 = DownTransition(32, 1, elu)
+		self.down_tr128 = DownTransition(64, 2, elu, dropout=True)
+		self.up_tr128 = UpTransition(128, 128, 8, elu, dropout=True)
+		self.up_tr64 = UpTransition(128, 64, 2, elu)
+		self.up_tr32 = UpTransition(64, 32, 1, elu)
+		self.out_tr = OutputTransition(32, 3, elu) # BKG, Body Segmentation map
+
+	def forward(self, x):
+
+		out16 = self.in_tr(x)
+		out32 = self.down_tr32(out16)
+		out64 = self.down_tr64(out32)
+		out128 = self.down_tr128(out64)
+		out = self.up_tr128(out128, out64)
+		out = self.up_tr64(out, out32)
+		outfeature = self.up_tr32(out, out16)
+		outmap = self.out_tr(outfeature) # this is the the Body Segmentation map
+
+		outbkg = outmap.narrow(1, 0, 1)
+		outbody = outmap.narrow(1, 1, 1)
+		outbv = outmap.narrow(1, 2, 1)
+
+		bodymsk = (outbody-outbody.min())/(outbody.max()-outbody.min()) # remap the mask to [0, 1]
+
+		outbv = outbv*bodymsk 
+
+		return torch.cat((outbkg, outbody, outbv), 1)

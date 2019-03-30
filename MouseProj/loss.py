@@ -44,30 +44,46 @@ def IoU(input, target, cirrculum=0):
 
 def dice_coeff(input, target):
 	'''
-	Base soft dice coeff calculation for single class
-	input, target: (N, 1, x0, x1 ... xd)
+	Base soft dice coeff calculation for single class as described in Vnet paper
+	input, target: (N, 1, X, Y ,Z)
+	Ret:
+		torch tensor of size() = [1]
 	'''
 
 	assert input.size() == target.size()
-	eplison = 1e-6
 
-	input_remap = (input - input.min())/(input.max()-input.min() + eplison)
+	eplison = 1e-6
+	batch_size = input.size()[0]
+
+	inmin, _ = torch.min(input.view(batch_size, -1), dim=1)
+	inmax, _ = torch.max(input.view(batch_size, -1), dim=1)
+
+	inmin = inmin.view(batch_size, 1, 1, 1, 1)
+	inmax = inmax.view(batch_size, 1, 1, 1, 1)
+	# reshape for broadcasting
+
+	input_remap = (input-inmin)/(inmax-inmin+eplison)
 	# remap the input to [0, 1]
 
-	return torch.sum(2*input_remap*target)/ \
-			(torch.sum(input_remap) + torch.sum(target + eplison))
+	dice_coefficient = torch.sum(2*input_remap*target, dim=(2,3,4))/ \
+			(torch.sum(input_remap*input_remap,dim=(2,3,4))+torch.sum(target*target,dim=(2,3,4))+eplison)
+	# Average dice coeff over mini batch
+
+	return torch.mean(dice_coefficient)
 
 
 def dice_loss(input, target, channel):
 	'''
 	Single class soft dice loss with specified channel
-	input: (N, C, x0, x1 ... xd), channel < C
+	input: (N, C, X, Y, Z), channel < C
 	'''
 	return 1 - dice_coeff(input.narrow(1, channel, 1), target.narrow(1, channel, 1))
 
 
 def dice_loss_2(input, target, cirrculum):
-
+	'''
+	Multi-class dice loss for body -> bv
+	'''
 	if cirrculum == 0:
 	# Seg the body mask first
 		return dice_loss(input, target, 1)

@@ -16,16 +16,19 @@ def weights_init(m):
         nn.init.kaiming_normal_(m.weight)
         m.bias.data.zero_()
 
-def shape_test(model, localdevice, localdtype, shape):
+def shape_test(model, device, dtype, lossFun, shape):
     
     sx, sy, sz = shape
 
-    x = torch.zeros((1, 1, sx, sy, sz), dtype=localdtype)
-    model = model.to(device=localdevice)
-    scores = model(x)
-    print(scores.size())
+    x = torch.randn((24, 3, sx, sy, sz), dtype=dtype, requires_grad=True)
+    y = torch.ones((24, 3, sx, sy, sz), dtype=dtype, requires_grad=True)
 
-def train(model, traindata, valdata, optimizer, device, dtype, lossFun=dice_loss, epochs=1):
+    # model = model.to(device=device)
+    # scores = model(x)
+    # print(scores.size())
+    loss = lossFun(x, y, cirrculum=2)
+
+def train(model, traindata, valdata, optimizer, device, dtype, lossFun, epochs=1):
     """
     Train a model with an optimizer
     
