@@ -1,5 +1,4 @@
 import torch
-eplison = 1e-5
 
 def IoU(input, target, cirrculum=0):
 	'''
@@ -42,44 +41,42 @@ def IoU(input, target, cirrculum=0):
 
 	return loss/N
 
-
-def dice_loss_single(input, target, cirrculum):
+def dice_coeff(input, target):
 	'''
-	Multi-class dice loss
-	All conversion happens explicitly in the train function
-	Args: 
-		input: tensor of shape (N, 3, H, W, D), dtype = float
-		target: ndarray of shape (N, 3, H, W, D) dtype = float
-	Ret:
-		loss: 1 - DiceCoefficient
+	Base soft dice coeff calculation for single class
+	input, target: (N, 1, x0, x1 ... xd)
 	'''
 
-	input = (input - input.min())/(input.max()-input.min() + eplison)
+	assert input.size() == target.size()
+	eplison = 1e-6
+
+	input_remap = (input - input.min())/(input.max()-input.min() + eplison)
+	# remap the input to [0, 1]
+
+	return torch.sum(2*input_remap*target)/ \
+			(torch.sum(input_remap) + torch.sum(target + eplison))
 
 
-	return 1 - (torch.sum(2*input*target.narrow(1, 0, 1))/ \
-			(torch.sum(input) + torch.sum(target.narrow(1, 0, 1)) + eplison))
+def dice_loss(input, target, channel):
+	'''
+	Single class soft dice loss with specified channel
+	input: (N, C, x0, x1 ... xd), channel < C
+	'''
+	return 1 - dice_coeff(input.narrow(1, channel, 1), target.narrow(1, channel, 1))
+
 
 def dice_loss_2(input, target, cirrculum):
 
-	intput_C1 = input.narrow(1, 1, 1)
-	intput_C2 = input.narrow(1, 2, 1)
-	intput_C1 = (intput_C1 - intput_C1.min())/(intput_C1.max()-intput_C1.min() + eplison)
-	intput_C2 = (intput_C2 - intput_C2.min())/(intput_C2.max()-intput_C2.min() + eplison)
-
 	if cirrculum == 0:
 	# Seg the body mask first
-		return 1 - (torch.sum(2*intput_C1*target.narrow(1, 1, 1))/ \
-			(torch.sum(intput_C1) + torch.sum(target.narrow(1, 1, 1)) + eplison))
+		return dice_loss(input, target, 1)
 
 	else:
 	# Seg the body and BV altogehter
-		return 1 - (torch.sum(2*intput_C1*target.narrow(1, 1, 1))/ \
-			(torch.sum(intput_C1) + torch.sum(target.narrow(1, 1, 1)) + eplison) + \
-			torch.sum(2*intput_C2*target.narrow(1, 2, 1))/ \
-			(torch.sum(intput_C2) + torch.sum(target.narrow(1, 2, 1)) + eplison))/2
+		return (dice_loss(input, target, 1) + dice_loss(input, target, 2))/2
 
-def dice_loss(input, target, cirrculum):
+
+def dice_loss_3(input, target, cirrculum):
 	'''
 	Multi-class dice loss
 	All conversion happens explicitly in the train function
@@ -89,35 +86,15 @@ def dice_loss(input, target, cirrculum):
 	Ret:
 		loss: 1 - DiceCoefficient
 	'''
-	assert input.size() == target.size() # make sure input and target has same size
-
-
-	intput_C1 = input.narrow(1, 0, 1)
-	intput_C2 = input.narrow(1, 1, 1)
-	intput_C3 = input.narrow(1, 2, 1)
-	intput_C1 = (intput_C1 - intput_C1.min())/(intput_C1.max()-intput_C1.min())
-	intput_C2 = (intput_C2 - intput_C2.min())/(intput_C2.max()-intput_C2.min())
-	intput_C3 = (intput_C3 - intput_C3.min())/(intput_C3.max()-intput_C3.min())
 
 	if cirrculum == 0:
-
-		return 1 - (torch.sum(2*intput_C1*target.narrow(1, 0, 1))/ \
-				(torch.sum(intput_C1) + torch.sum(target.narrow(1, 0, 1)) + eplison))
+		return dice_loss(input, target, 0)
 
 	elif cirrculum == 1:
-
-		return 1 - (torch.sum(2*intput_C1*target.narrow(1, 0, 1))/ \
-			(torch.sum(intput_C1) + torch.sum(target.narrow(1, 0, 1)) + eplison) + \
-			torch.sum(2*intput_C2*target.narrow(1, 1, 1))/ \
-			(torch.sum(intput_C2) + torch.sum(target.narrow(1, 1, 1)) + eplison))/2
-
+		return (dice_loss(input, target, 0) +\
+				dice_loss(input, target, 1))/2
 
 	else:
-
-		return 1 - (torch.sum(2*intput_C1*target.narrow(1, 0, 1))/ \
-			(torch.sum(intput_C1) + torch.sum(target.narrow(1, 0, 1)) + eplison) + \
-			torch.sum(2*intput_C2*target.narrow(1, 1, 1))/ \
-			(torch.sum(intput_C2) + torch.sum(target.narrow(1, 1, 1)) + eplison) + \
-			torch.sum(2*intput_C3*target.narrow(1, 2, 1))/ \
-			(torch.sum(intput_C3) + torch.sum(target.narrow(1, 2, 1)) + eplison))/3
-
+		return (dice_loss(input, target, 0) +\
+				dice_loss(input, target, 1) +\
+				dice_loss(input, target, 2))

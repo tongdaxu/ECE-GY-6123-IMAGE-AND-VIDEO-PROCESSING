@@ -10,7 +10,7 @@ data_path = 'img_'
 label_path = 'bv_body'
 appendix_str = '.nii'
 
-def loadnii(x, xout, yout, zout, mode='pad', mask=False):
+def loadnii(x, xout, yout, zout, mode='pad'):
 
 	"""
 	load the nii image and label into np array 
@@ -42,20 +42,29 @@ def loadnii(x, xout, yout, zout, mode='pad', mask=False):
 	
 	return (data, label)
 
-def savenii(img, PATH): 
+def savenii(img, img_name): 
+	'''
+	Saving the mask to nii file in format
+	Args:
+		* img: ndarray of shape (1, X, Y, Z) quantized
+		* img_name: str of image index
+	return:
+		* None
+	'''
 	timestamp = datetime.datetime.now()
-	filename = PATH + str(timestamp) + appendix_str
+	filename = img_name + '-' + str(timestamp) + appendix_str
 	array_img = nib.Nifti1Image(img, np.eye(4))
 	nib.save(array_img, filename)
 
-def getniishape(x):
+	pass
 
+def getniishape(x):
 	"""
-	get the upperbound shape of image array
+	Get the shape of an image
 	input:
-		x: number of image
+		* x: int of image index
 	return: 
-		array of tuple of (max x, max y, max z)
+		* tuple (X, Y, X)
 	"""
 	label_file = os.path.join(image_path, label_path + str(x)+ appendix_str)
 	label = ((nib.load(label_file)).get_fdata()).astype(np.float32)/2
@@ -66,10 +75,10 @@ def zero_padding (img, target_x, target_y, target_z):
 	"""
 	reshaping the img to desirable shape through zero pad or crop
 	Args:
-		img: input 3d nii array
-		target_x: target shape x
-		target_y: target shape y
-		target_z: target shape z
+		* img: input 3d nii array
+		* target_x: target shape x
+		* target_y: target shape y
+		* target_z: target shape z
 	Ret:
 		img: reshaped 3d nii array
 	"""
@@ -96,7 +105,7 @@ def zero_padding (img, target_x, target_y, target_z):
 		img = np.pad (img, ((0,0),(0, 0),(padz, padz)), \
 			mode='constant', constant_values=((0,0),(0,0),(0,0)))
 
-	return img
+	return img	
 
 def show_image(img, label, indice=-1):
 
