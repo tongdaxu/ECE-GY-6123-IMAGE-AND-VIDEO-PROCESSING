@@ -28,7 +28,24 @@ def shape_test(model, device, dtype, lossFun, shape):
     # print(scores.size())
     loss = lossFun(x, y, cirrculum=2)
 
-def train(model, traindata, valdata, optimizer, device, dtype, lossFun, epochs=1):
+def loadckp (model, optimizer, scheduler, filename, device):
+    model = model.to(device=device)
+    if os.path.isfile(filename):
+        print("loading checkpoint '{}'".format(filename))
+        checkpoint = torch.load(filename)
+        start_epoch = checkpoint['epoch']
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        scheduler.load_state_dict(checkpoint['scheduler'])
+        print("loaded checkpoint '{}' (epoch {})"
+                  .format(filename, checkpoint['epoch']))
+    else:
+        print("no checkpoint found at '{}'".format(filename))
+
+    return model, optimizer, scheduler
+
+
+def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFun, epochs=1):
     """
     Train a model with an optimizer
     
@@ -41,7 +58,6 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun, epochs=1
     """
     model = model.to(device=device)  # move the model parameters to CPU/GPU
     cirrculum = 0
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', patience=30, verbose=True)
     
     for e in range(epochs):
         epoch_loss = 0
@@ -74,18 +90,21 @@ def train(model, traindata, valdata, optimizer, device, dtype, lossFun, epochs=1
         
         loss_val = check_accuracy(model, valdata, device, dtype, 
             cirrculum=cirrculum, lossFun=lossFun)
-        scheduler.step(loss_val)
+        # scheduler.step(loss_val)
            
         # When validation loss < 0.1,upgrade cirrculum, reset scheduler
         if loss_val < 0.1 and cirrculum <= 2:
             cirrculum += 1
             scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True)
-            state = {'epoch': e + 1, 'state_dict': model.state_dict(),\
-                'optimize r': optimizer.state_dict()}
-            torch.save(state, 'checkpoint' + str(datetime.datetime.now())+'.pth')
             print('Change Currculum! Reset LR Counter!')
 
-
+        if e%50 == 0:
+            model_save_path = 'checkpoint' + str(datetime.datetime.now())+'.pth'
+            state = {'epoch': e + 1, 'state_dict': model.state_dict(),
+                'optimizer': optimizer.state_dict(), 'scheduler': scheduler.state_dict()}
+            torch.save(state, model_save_path)
+            print('Checkpoint {} saved !'.format(e + 1))
+        
 def check_accuracy(model, dataloader, device, dtype, cirrculum, lossFun):
     model.eval()  # set model to evaluation mode
     with torch.no_grad():
@@ -135,7 +154,7 @@ def check_img(model, dataloader, device, dtype, cirrculum, lossFun):
             show_batch_image(x,y,batch_size)
             show_batch_image(x,mask_predict,batch_size)
             
-            mask_predict_resize = upSampleFun(mask_predict.numpy()[0,1:2], 4, 0)
+            mask_predict_resize = upSampleFun(mask_predict.numpy()[0,1:2], 2, 0)
             mask_predict_resize = mask_predict_resize.squeeze(axis=0)
             mask_predict_resize = (mask_predict_resize > 0.5).astype(np.float32)
             shape = getniishape(t)

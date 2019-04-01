@@ -77,6 +77,8 @@ def toTensor (sample):
 	labelOH[1:2] = (label > 0.33).astype(np.float32)
 	labelOH[2:3] = (label > 0.66).astype(np.float32)
 
+	labelOH[1:2] -= labelOH[2:3]
+
 	labelTensor = torch.from_numpy(labelOH)
 
 	labelTensor = torch.round(labelTensor)
