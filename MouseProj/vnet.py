@@ -95,9 +95,9 @@ class InputTransition(nn.Module):
 	'''
 	def __init__(self, outChans, elu):
 		super(InputTransition, self).__init__()
-		self.conv1 = nn.Conv3d(1, 16, kernel_size=5, padding=2)
-		self.bn1 = nn.BatchNorm3d(16)
-		self.relu1 = ELUCons(elu, 16)
+		self.conv1 = nn.Conv3d(1, outChans, kernel_size=5, padding=2)
+		self.bn1 = nn.BatchNorm3d(outChans)
+		self.relu1 = ELUCons(elu, outChans)
 
 	def forward(self, x):
 		# do we want a PRELU here as well?
@@ -236,6 +236,46 @@ class LNet(nn.Module):
 		out = self.fc2(out)
 
 		return out
+
+
+class DVNet(nn.Module):
+	'''
+	Deep V NET for 192 256 256 FULL FUCKING SIZE
+	'''
+
+	def __init__(self, classnum=1, elu=True):
+		super(DVNet, self).__init__()
+
+		self.in_tr = InputTransition(8, elu)
+
+		self.down_tr16 = DownTransition(8, 2, elu, dropout=True)
+		self.down_tr32 = DownTransition(16, 2, elu, dropout=True)
+		self.down_tr64 = DownTransition(32, 3, elu, dropout=True)
+		self.down_tr128 = DownTransition(64, 3, elu, dropout=True)
+		self.down_tr256 = DownTransition(128, 3, elu, dropout=True)
+
+		self.up_tr256 = UpTransition(256, 256, 6, elu, dropout=True)
+		self.up_tr128 = UpTransition(256, 128, 3, elu, dropout=True)
+		self.up_tr64 = UpTransition(128, 64, 2, elu, dropout=True)
+		self.up_tr32 = UpTransition(64, 32, 2, elu, dropout=True)
+		self.up_tr16 = UpTransition(32, 16, 2, elu, dropout=True)
+
+		self.out_tr = OutputTransition(16, classnum ,elu)
+
+	def forward(self, x):
+
+		out8 = self.in_tr(x)
+		out16 = self.down_tr16(out8)
+		out32 = self.down_tr32(out16)
+		out64 = self.down_tr64(out32)
+		out128 = self.down_tr128(out64)
+		out256 = self.down_tr256(out128)
+		out = self.up_tr256(out256, out128)
+		out = self.up_tr128(out, out64)
+		out = self.up_tr64(out, out32)
+		out = self.up_tr32(out, out16)
+		out = self.up_tr16(out, out8)
+		out = self.out_tr(out)
 
 
 class VNet(nn.Module):
