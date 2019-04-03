@@ -12,6 +12,7 @@
 *.pytorch
 *.gif
 *.pth
+*.png
 CA04/data/
 
 Lecture/*

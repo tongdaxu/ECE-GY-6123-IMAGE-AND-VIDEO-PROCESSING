@@ -6,9 +6,11 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from scipy.ndimage import affine_transform, zoom
 
-from loss import dice_loss
+from loss import dice_loss, dice_coeff_np
 from niiutility import *
 from dataset import upSampleFun
+from scipy.ndimage import affine_transform, zoom, gaussian_filter
+
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -124,13 +126,19 @@ def check_accuracy(model, dataloader, device, dtype, cirrculum, lossFun):
 
 
 
-def check_img(model, dataloader, device, dtype, cirrculum, lossFun):
+def check_img(model, dataloader, device, dtype, cirrculum, lossFun, data_index):
     model.eval()  # set model to evaluation mode
+
 
     with torch.no_grad():
 
         N = len(dataloader)
+        bodyDice = 0
+        bvDice = 0
+
         for t, batch in enumerate(dataloader):
+
+            image_index = data_index[t]
 
             x = batch['image']
             y = batch['label']
@@ -141,7 +149,6 @@ def check_img(model, dataloader, device, dtype, cirrculum, lossFun):
             mask_predict = model(x)
 
             loss = lossFun(mask_predict, y, cirrculum=cirrculum)
-            print('loss = %.4f' % loss)
 
             # Show and save image
 
@@ -154,15 +161,45 @@ def check_img(model, dataloader, device, dtype, cirrculum, lossFun):
             show_batch_image(x,y,batch_size)
             show_batch_image(x,mask_predict,batch_size)
             
-            mask_predict_resize = upSampleFun(mask_predict.numpy()[0,1:2], 2, 0)
-            mask_predict_resize = mask_predict_resize.squeeze(axis=0)
-            mask_predict_resize = (mask_predict_resize > 0.5).astype(np.float32)
-            shape = getniishape(t)
-            mask_predict_resize = zero_padding(mask_predict_resize, shape[0], shape[1], shape[2])
-            
-            savenii(mask_predict_resize, str(t))
+            mask_predict_bd = upSampleFun(mask_predict.numpy()[0,1:2], 2, 3)
+            mask_predict_bv = upSampleFun(mask_predict.numpy()[0,2:3], 2, 3)
+
+            mask_predict_bd = mask_predict_bd.squeeze(axis=0)
+            mask_predict_bv = mask_predict_bv.squeeze(axis=0)
+
+            # mask_predict_bd = gaussian_filter(mask_predict_bd, sigma=1)
+            # mask_predict_bv = gaussian_filter(mask_predict_bv, sigma=3)
+
+            mask_predict_bd = (mask_predict_bd - np.min(mask_predict_bd)) / (np.max(mask_predict_bd) - np.min(mask_predict_bd))
+            mask_predict_bv = (mask_predict_bv - np.min(mask_predict_bv)) / (np.max(mask_predict_bv) - np.min(mask_predict_bv))
+
+            mask_predict_bd = (mask_predict_bd > 0.75).astype(np.float32)
+            mask_predict_bv = (mask_predict_bv > 0.5).astype(np.float32)
+
+            shape = getniishape(image_index)
+            _, label = loadnii(image_index)
+
+            mask_predict_bd = zero_padding(mask_predict_bd, shape[0], shape[1], shape[2])
+            mask_predict_bv = zero_padding(mask_predict_bv, shape[0], shape[1], shape[2])
+
+            mask_bv = (label > 0.75).astype(np.float32)
+            mask_bd = (label > 0.25).astype(np.float32) - mask_bv
+
+            dice_bv = dice_coeff_np(mask_bv, mask_predict_bv.reshape(1, *mask_predict_bv.shape))
+            dice_bd = dice_coeff_np(mask_bd, mask_predict_bd.reshape(1, *mask_predict_bd.shape))
+
+            print('image {0} loss is {1:.4f} \
+                body dice coeff is {2:.4f}, bv dice coeff is {3:.4f}'\
+                .format(image_index, loss, dice_bd, dice_bv))
+
+            bvDice += dice_bv
+            bodyDice += dice_bd
+
+            #savenii(mask_predict_bd,str(image_index) + '_body')
+            #savenii(mask_predict_bv,str(image_index) + '_bv')
             
             pass
 
+        print('average body dice is {0:.4f}, average bv dice is {1:.4f}'.format(bodyDice/N, bvDice/N))
 
 

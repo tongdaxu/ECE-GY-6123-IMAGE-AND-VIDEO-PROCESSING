@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 def IoU(input, target, cirrculum=0):
 	'''
@@ -41,6 +42,16 @@ def IoU(input, target, cirrculum=0):
 
 	return loss/N
 
+def dice_coeff_np(input, target):
+	'''
+	numpy dice coeff for single image (1, X, Y, Z)
+	'''
+
+	assert input.shape == target.shape
+
+	Intersect = input*target
+
+	return 2*np.sum(Intersect)/(np.sum(input) + np.sum(target))
 
 def dice_coeff(input, target):
 	'''
