@@ -1,5 +1,10 @@
 import torch
 import numpy as np
+import torch.nn as nn
+
+def MSE(input, target, cirrculum=0):
+	loss = nn.MSELoss()
+	return loss(input, target)
 
 def IoU(input, target, cirrculum=0):
 	'''

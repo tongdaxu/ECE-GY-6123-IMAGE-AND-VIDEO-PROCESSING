@@ -210,7 +210,7 @@ class LNet(nn.Module):
 		self.down_tr64 = DownTransition(32, 3, elu, dropout=True) # /4
 		self.down_tr128 = DownTransition(64, 3, elu, dropout=True) # /8
 		self.down_tr256 = DownTransition(128, 3, elu, dropout=True) # /16
-		self.down_tr512 = DownTransition(256, 4, elu, dropout=True) # /32
+		self.down_tr512 = DownTransition(256, 6, elu, dropout=True) # /32
 		self.gap = nn.AvgPool3d(kernel_size = (x//32,y//32,z//32)) # N, C, 1, 1, 1
 
 		channel_num = 512
