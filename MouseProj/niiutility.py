@@ -172,7 +172,7 @@ def zero_padding (img, target_x, target_y, target_z):
 	return img	
 
 
-def show_image(img, label, indice=-1):
+def show_image(img, label=None, indice=-1):
 	"""
 	show a slice of image with label at certain indice
 	Args:
@@ -185,28 +185,36 @@ def show_image(img, label, indice=-1):
 	if indice ==-1:
 		indice = img.shape[1]//2
 
-	N = label.shape[0]
-	fig, ax = plt.subplots(1, N+1, figsize=(12, 4), sharey=True)
-	ax[0].imshow(img[0][indice], cmap='gray')
-	# have to show the original image
+	if label != None:
+		N = label.shape[0]
+		fig, ax = plt.subplots(1, N+1, figsize=(12, 4), sharey=True)
+		ax[0].imshow(img[0][indice], cmap='gray')
+		# have to show the original image
 
-	for i in range(N):
-		ax[i+1].imshow(label[i][indice], cmap='gray')
+		for i in range(N):
+			ax[i+1].imshow(label[i][indice], cmap='gray')
+	else:
+		plt.imshow(img[0][indice], cmap='gray')
+
 	plt.show()
 
 	pass
 
-def show_batch_image(img, label, batchsize, indice=-1):
+def show_batch_image(img, batchsize, label=None, indice=-1):
 	'''
 	show batch of Tensor as image
 
 	'''
 	img = img.numpy()
-	label = label.numpy()
+	
+	if label != None:
+		label = label.numpy()
 
 	for i in range(batchsize):
-		show_image(img[i], label[i], indice)
-
+		if label != None:
+			show_image(img[i], label[i], indice)
+		else: 
+			show_image(img[i], None, indice)
 	pass
 
 

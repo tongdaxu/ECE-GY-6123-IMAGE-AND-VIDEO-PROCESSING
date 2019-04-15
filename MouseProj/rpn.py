@@ -26,7 +26,6 @@ class FCRB(nn.Module):
         out = self.dp(self.relu(self.bn(self.affine(x))))
         return out
 
-
 class RPN3D(nn.Module):
     def __init__(self, img_size, out_size):
         

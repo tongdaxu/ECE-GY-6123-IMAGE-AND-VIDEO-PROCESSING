@@ -3,6 +3,9 @@ import numpy as np
 import torch.nn as nn
 
 def MSE(input, target, cirrculum=0):
+	'''
+	a fake inteface for mse loss
+	'''
 	loss = nn.MSELoss()
 	return loss(input, target)
 
@@ -95,7 +98,6 @@ def dice_loss(input, target, channel):
 	'''
 	return 1 - dice_coeff(input.narrow(1, channel, 1), target.narrow(1, channel, 1))
 
-
 def dice_loss_2(input, target, cirrculum):
 	'''
 	Multi-class dice loss for body -> bv
@@ -107,7 +109,6 @@ def dice_loss_2(input, target, cirrculum):
 	else:
 	# Seg the body and BV altogehter
 		return (dice_loss(input, target, 1) + dice_loss(input, target, 2))/2
-
 
 def dice_loss_3(input, target, cirrculum):
 	'''

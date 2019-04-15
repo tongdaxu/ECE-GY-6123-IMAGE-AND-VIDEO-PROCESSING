@@ -85,7 +85,7 @@ def toTensor (sample):
 
 	return {'image': imageTensor, 'label': labelTensor}
 
-def AffineFun(img, xr, yr, zr, xm, ym, zm, order):
+def AffineFun(img, xr, yr, zr, xm, ym, zm, s, order):
 	'''
 	Notes:
 		Rotate and move
@@ -111,14 +111,42 @@ def AffineFun(img, xr, yr, zr, xm, ym, zm, order):
 	yc = img[0].shape[1]//2
 	zc = img[0].shape[2]//2
 
-	Mc = np.array([[1, 0, 0, xc],[0, 1, 0, yc],[0, 0, 1, zc],[0, 0, 0, 1]])
-	Rx = np.array([[cosx, sinx, 0, 1],[-sinx, cosx, 0, 1],[0, 0, 1, 1], [0, 0, 0, 1]])
-	Ry = np.array([[cosy, 0, siny, 1],[0, 1, 0, 1],[-siny, 0, cosy, 1], [0, 0, 0, 1]])
-	Rz = np.array([[1, 0, 0, 1],[0, cosz, sinz, 1],[0, -sinz, cosz, 1], [0, 0, 0, 1]])
-	Mb = np.array([[1, 0, 0, -xc],[0, 1, 0, -yc],[0, 0, 1, -zc],[0, 0, 0, 1]])
-	MM = np.array([[1, 0, 0, xm],[0, 1, 0, ym],[0, 0, 1, zm],[0 ,0, 0, 1]])
+	Mc = np.array([ [1, 0, 0, xc],
+					[0, 1, 0, yc],
+					[0, 0, 1, zc],
+					[0, 0, 0, 1]])
+	
+	Ms = np.array([ [1/s, 0, 0, 0],
+					[0, 1/s, 0, 0],
+					[0, 0, 1/s, 0], 
+					[0, 0, 0, 1]])
+	
+	Rx = np.array([ [cosx, sinx, 0, 0],
+					[-sinx, cosx, 0, 0],
+					[0, 0, 1, 0], 
+					[0, 0, 0, 1]])
 
-	Matrix = np.linalg.multi_dot([Mc, Rx, Ry, Rz, Mb, MM])
+	Ry = np.array([ [cosy, 0, siny, 0],
+					[0, 1, 0, 0],
+					[-siny, 0, cosy, 0], 
+					[0, 0, 0, 1]])
+	
+	Rz = np.array([ [1, 0, 0, 0],
+					[0, cosz, sinz, 0],
+					[0, -sinz, cosz, 0], 
+					[0, 0, 0, 1]])
+	
+	Mb = np.array([ [1, 0, 0, -xc],
+					[0, 1, 0, -yc],
+					[0, 0, 1, -zc],
+					[0, 0, 0, 1]])
+
+	MM = np.array([ [1, 0, 0, xm],
+					[0, 1, 0, ym],
+					[0, 0, 1, zm],
+					[0 ,0, 0, 1]])
+
+	Matrix = np.linalg.multi_dot([Mc, Ms, Rx, Ry, Rz, Mb, MM])
 	img[0] = affine_transform(img[0], Matrix, output_shape=img[0].shape, order=order)
 
 	return img
@@ -178,7 +206,10 @@ def downSampleFun(img, level, order):
 		_, x, y, z = img.shape
 
 		imgout = np.zeros([1, x//level, y//level, z//level], dtype=np.float32)
-		Matrix = np.array([[level, 0, 0, 0],[0, level, 0, 0],[0, 0, level, 0],[0, 0, 0, 1]])
+		Matrix = np.array([ [level, 0, 0, 0],
+							[0, level, 0, 0],
+							[0, 0, level, 0],
+							[0, 0, 0, 1]])
 		imgout[0] = affine_transform(img[0], Matrix, output_shape=imgout[0].shape, order=order)
 		return imgout
 
@@ -212,19 +243,21 @@ class RandomAffine(object):
 	'''
 	Random rotation and move
 	'''
-	def __init__(self, fluR, fluM):
+	def __init__(self, fluR=0, fluM=0, fluS=1):
 
 		self.fluR = fluR
 		self.fluM = fluM
+		self.fluS = fluS
 
 	def __call__(self, sample):
 
 		xr, yr, zr = np.random.uniform(-self.fluR, self.fluR, size=3)		
 		xm, ym, zm = np.random.uniform(-self.fluM, self.fluM, size=3)
+		s = np.random.uniform(1/self.fluS, self.fluS, size=1)
 
 		image, label = sample['image'], sample['label']
-		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, 3), \
-				'label': AffineFun(label, xr, yr, zr, xm, ym, zm, 0)}
+		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, s, 3), \
+				'label': AffineFun(label, xr, yr, zr, xm, ym, zm, s, 0)}
 
 class niiDataset(Dataset):
 	'''
@@ -264,77 +297,79 @@ class niiDataset(Dataset):
 
 class niiMaskDataset(Dataset):
 
-    def __init__(self, index, transform=None):
-        self.index=index
-        self.transform=transform
-        
-    def __len__(self):
-        '''
-        Override: return size of dataset
-        '''
-        return (self.index).shape[0]
+	def __init__(self, index, transform=None):
+		self.index=index
+		self.transform=transform
+		
+	def __len__(self):
+		'''
+		Override: return size of dataset
+		'''
+		return (self.index).shape[0]
 
-    def __getitem__(self, indice):
-        image, label = loadnii(self.index[indice], 128, 192, 192, mode='pad')
-        sample = {'image':image, 'label':label}
+	def __getitem__(self, indice):
+		image, label = loadnii(self.index[indice], 128, 192, 192, mode='pad')
+		sample = {'image':image, 'label':label}
 
-        # data are numpy array at this point
+		# data are numpy array at this point
 
-        if self.transform:
-            sample = self.transform(sample)
+		if self.transform:
+			sample = self.transform(sample)
 
-        sample = toTensor(sample)
-        
-        imageTensor = sample['image']
-        bodyMask = sample['label'].narrow(0, 1, 1)
-        bvMask = sample['label'].narrow(0, 2, 1)
-        bodyMask = torch.round(bodyMask)
-        imageTensor = imageTensor - torch.mean(imageTensor)
-        imageTensor = imageTensor*bodyMask
-        
-        sample = {'image':imageTensor, 'label':bvMask}
+		sample = toTensor(sample)
+		
+		imageTensor = sample['image']
+		bodyMask = sample['label'].narrow(0, 1, 1)
+		bvMask = sample['label'].narrow(0, 2, 1)
+		bodyMask = torch.round(bodyMask)
+		imageTensor = imageTensor - torch.mean(imageTensor)
+		imageTensor = imageTensor*bodyMask
+		
+		sample = {'image':imageTensor, 'label':bvMask}
 
-        return sample
+		return sample
 
 class BvMaskDataset(Dataset):
+	'''
+	image: transformed image
+	bbox: box cooderinate based on transformed label
+	'''
+	def __init__(self, index, transform=None):
+		self.index=index
+		self.transform=transform
+		
+	def __len__(self):
+		'''
+		Override: return size of dataset
+		'''
+		return (self.index).shape[0]
 
-    def __init__(self, index, transform=None):
-        self.index=index
-        self.transform=transform
-        
-    def __len__(self):
-        '''
-        Override: return size of dataset
-        '''
-        return (self.index).shape[0]
+	def __getitem__(self, indice):
+		image, label = loadnii(self.index[indice], 192, 256, 256, mode='pad')
+		sample = {'image':image, 'label':label}
 
-    def __getitem__(self, indice):
-        image, label = loadnii(self.index[indice], 192, 256, 256, mode='pad')
-        sample = {'image':image, 'label':label}
+		# data are numpy array at this point
 
-        # data are numpy array at this point
+		if self.transform:
+			sample = self.transform(sample)
 
-        if self.transform:
-            sample = self.transform(sample)
+		BBox = loadbvmask(sample['label'])
+		BBox = torch.from_numpy(BBox)
+		# Get the BBox ground truth
 
-        BBox = loadbvmask(sample['label'])
-        BBox = torch.from_numpy(BBox)
-        # Get the BBox ground truth
+		sample = toTensor(sample)
+		imageTensor = sample['image']
+		bvMask = sample['label'].narrow(0, 2, 1)
+		# Get the image tensor
+		
+		# bodyMask = sample['label'].narrow(0, 1, 1)
+		# bodyMask = torch.round(bodyMask)
+		# imageTensor = imageTensor - torch.mean(imageTensor)
+		# imageTensor = imageTensor*bodyMask
+		
+		sample = {'image':imageTensor, 'label':BBox}
 
-        sample = toTensor(sample)
-        imageTensor = sample['image']
-        bvMask = sample['label'].narrow(0, 2, 1)
-        # Get the image tensor
-        
-        # bodyMask = sample['label'].narrow(0, 1, 1)
-        # bodyMask = torch.round(bodyMask)
-        # imageTensor = imageTensor - torch.mean(imageTensor)
-        # imageTensor = imageTensor*bodyMask
-        
-        sample = {'image':imageTensor, 'label':BBox}
-
-        return sample
-
+		return sample
 
 class niiPatchDataset(Dataset):
 	'''
