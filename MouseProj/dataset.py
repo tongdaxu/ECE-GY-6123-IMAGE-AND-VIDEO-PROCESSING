@@ -51,7 +51,7 @@ def loadbvmask(img):
 		else:
 			z2 -= 1
 
-	return np.array([x1, x2-x1, y1, y2-y1, z1, z2-z1])
+	return np.array([x1, x2, y1, y2, z1, z2])
 
 
 def toTensor (sample):
@@ -309,7 +309,7 @@ class BvMaskDataset(Dataset):
         return (self.index).shape[0]
 
     def __getitem__(self, indice):
-        image, label = loadnii(self.index[indice], 128, 192, 192, mode='pad')
+        image, label = loadnii(self.index[indice], 192, 256, 256, mode='pad')
         sample = {'image':image, 'label':label}
 
         # data are numpy array at this point
