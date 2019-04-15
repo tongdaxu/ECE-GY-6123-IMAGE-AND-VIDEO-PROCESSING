@@ -47,7 +47,7 @@ def loadckp (model, optimizer, scheduler, filename, device):
     return model, optimizer, scheduler
 
 
-def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFun, epochs=1):
+def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFun, epochs=1, startepoch=0):
     """
     Train a model with an optimizer
     
@@ -60,6 +60,7 @@ def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFu
     """
     model = model.to(device=device)  # move the model parameters to CPU/GPU
     cirrculum = 0
+    model_save_path = 'checkpoint' + str(datetime.datetime.now())+'.pth'
     
     for e in range(epochs):
         epoch_loss = 0
@@ -88,7 +89,7 @@ def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFu
             # computed by the backwards pass.
             optimizer.step()
             
-        print('Epoch {0} finished ! Training Loss: {1}'.format(e, epoch_loss / t))
+        print('Epoch {0} finished ! Training Loss: {1}'.format(e + startepoch, epoch_loss / t))
         
         loss_val = check_accuracy(model, valdata, device, dtype, 
             cirrculum=cirrculum, lossFun=lossFun)
@@ -100,12 +101,12 @@ def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFu
             scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True)
             print('Change Currculum! Reset LR Counter!')
 
-        if e%50 == 0:
-            model_save_path = 'checkpoint' + str(datetime.datetime.now())+'.pth'
-            state = {'epoch': e + 1, 'state_dict': model.state_dict(),
+        if (e+startepoch)%50 == 0:
+            
+            state = {'epoch': e+startepoch + 1, 'state_dict': model.state_dict(),
                 'optimizer': optimizer.state_dict(), 'scheduler': scheduler.state_dict()}
             torch.save(state, model_save_path)
-            print('Checkpoint {} saved !'.format(e + 1))
+            print('Checkpoint {} saved !'.format(e+startepoch + 1))
         
 def check_accuracy(model, dataloader, device, dtype, cirrculum, lossFun):
     model.eval()  # set model to evaluation mode
