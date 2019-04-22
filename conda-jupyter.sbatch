@@ -9,7 +9,7 @@
 #SBATCH --gres=gpu:1
 
 module purge
-module load anaconda3/4.3.1
+module swap python3/intel  anaconda3/5.3.1
 module load cuda/9.0.176
 module load cudnn/9.0v7.0.5
 source activate cs231
