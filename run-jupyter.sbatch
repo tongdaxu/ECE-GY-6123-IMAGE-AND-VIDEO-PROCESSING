@@ -19,7 +19,7 @@ module load python3/intel/3.6.3
 module load cuda/9.0.176
 module load cudnn/9.0v7.0.5
 # source /home/zq415/pyenv/py3.6.3/bin/activate
-source /home/tx506/anaconda3/envs/cs231
+source activate /home/tx506/anaconda3/envs/cs231
 
 port=$(shuf -i 6000-9999 -n 1)
 
