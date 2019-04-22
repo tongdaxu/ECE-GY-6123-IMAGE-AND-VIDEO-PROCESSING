@@ -3,6 +3,8 @@ import numpy as np
 from torch.utils.data import Dataset
 from scipy.ndimage import affine_transform
 from niiutility import loadnii
+from numba import jit
+import time
 
 def loadbvmask(img):
 	'''
@@ -145,10 +147,9 @@ def AffineFun(img, xr, yr, zr, xm, ym, zm, s, order):
 					[0, 1, 0, ym],
 					[0, 0, 1, zm],
 					[0 ,0, 0, 1]])
-
+	
 	Matrix = np.linalg.multi_dot([Mc, Ms, Rx, Ry, Rz, Mb, MM])
 	img[0] = affine_transform(img[0], Matrix, output_shape=img[0].shape, order=order)
-
 	return img
 
 def filpFun(img, x, y, z):
@@ -256,7 +257,7 @@ class RandomAffine(object):
 		s = np.random.uniform(1/self.fluS, self.fluS, size=1)
 
 		image, label = sample['image'], sample['label']
-		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, s, 3), \
+		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, s, 2), \
 				'label': AffineFun(label, xr, yr, zr, xm, ym, zm, s, 0)}
 
 class niiDataset(Dataset):
