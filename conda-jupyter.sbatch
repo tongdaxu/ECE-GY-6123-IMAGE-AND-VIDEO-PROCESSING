@@ -9,10 +9,9 @@
 #SBATCH --gres=gpu:1
 
 module purge
-module load python3/intel/3.6.3
+module load anaconda3/4.3.1
 module load cuda/9.0.176
 module load cudnn/9.0v7.0.5
-module load anaconda3/4.3.1
 source activate cs231
 
 port=$(shuf -i 6000-9999 -n 1)
