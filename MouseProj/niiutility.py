@@ -268,3 +268,92 @@ def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=Fals
 
 	return (image, label)
 
+
+def find_bv(label):
+	'''
+	input: 
+		label: the unique part of file name
+	output: 
+		path to corresponding bv segmentation
+	'''
+
+    for r, d, f in os.walk('20180419_newdata_nii_with_filtered'):
+        for file in f:
+            if label in file and 'BV' in file:
+                return os.path.join(r, file)
+
+    for r, d, f in os.walk('new_data_20180522_nii'):
+        for file in f:
+            if label in file and 'BV' in file:
+                return os.path.join(r, file)
+
+    print('wrong label')
+
+
+def find_body(label):
+	'''
+	input: 
+		label: the unique part of file name
+	output: 
+		path to corresponding body segmentation
+	'''
+    
+    for r, d, f in os.walk('nii_test'):
+        for file in f:
+            if label in file and 'BODY' in file:
+                return os.path.join(r, file)
+    print('wrong label')
+
+
+def get_bv_tuple(idx):
+	'''
+	input: 
+		idx: index into all bv segmentations
+	output:
+		a tuple of path to original image and path to bv 
+	'''
+    
+    counter = 0
+    
+    for r, d, f in os.walk('20180419_newdata_nii_with_filtered'):
+        for file in f:
+            if 'BV' not in file and 'filtered' not in file and file[0]!='.':
+                counter += 1
+                if counter == idx: 
+                    label = file[:-4]
+                    bv_path = find_bv(label)
+                    return ((os.path.join(r, file), bv_path))
+
+    for r, d, f in os.walk('new_data_20180522_nii'):
+        for file in f:
+            if 'BV' not in file and 'filtered' not in file and file[0]!='.':
+                counter += 1
+                if counter == idx: 
+                    label = file[:-4]
+                    bv_path = find_bv(label)
+                    return ((os.path.join(r, file), bv_path))
+                
+    print('index out of range')
+
+
+def get_body_tuple(idx):
+	'''
+	input: 
+		idx: index into all body segmentations
+	output:
+		a tuple of path to original image and path to body 
+	'''
+    
+    counter = 0
+    
+    for r, d, f in os.walk('nii_test'):
+        for file in f:
+            if 'BODY' not in file and 'filtered' not in file and file[0]!='.':
+                counter += 1
+                if counter == idx: 
+                    label = file[:-4]
+                    body_path = find_body(label)
+                    return ((os.path.join(r, file), body_path))
+
+                
+    print('index out of range')
