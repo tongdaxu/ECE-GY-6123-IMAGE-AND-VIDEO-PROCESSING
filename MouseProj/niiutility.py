@@ -357,3 +357,18 @@ def get_body_tuple(idx):
 
                 
     print('index out of range')
+
+def bbox_scale((x1, x2, y1, y2, z1, z2), image):
+	'''
+	input: 
+		(x1,x2,y1,y2,z1,z3): bounding box
+		image: whole image
+	output:
+		a scaled image where the largest dimension of bounding box is 128
+	'''
+    
+    max_len = max([x1-x2, y1-y2, z1-z2])
+    
+    scale = 128.0/max_len
+    
+    return zoom(image, scale, mode='constant', cval=0)
