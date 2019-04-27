@@ -149,23 +149,25 @@ def zero_padding (img, target_x, target_y, target_z):
 	padx = (target_x-img.shape[0])//2
 	pady = (target_y-img.shape[1])//2
 	padz = (target_z-img.shape[2])//2
-
+	extrax = int(img.shape[0]%2!=0)
+	extray = int(img.shape[1]%2!=0)
+	extraz = int(img.shape[2]%2!=0)
 	if padx<0:
-		img = img[-padx:padx,:,:]
+		img = img[-padx:padx+extrax,:,:]
 	else:
-		img = np.pad (img, ((padx,padx),(0, 0),(0, 0)), \
+		img = np.pad (img, ((extrax + padx,padx),(0, 0),(0, 0)), \
 			mode='constant', constant_values=((0,0),(0,0),(0,0)))
 
 	if pady <0:
-		img = img[:,-pady:pady,:]
+		img = img[:,-pady:pady+extray,:]
 	else:
-		img = np.pad (img, ((0,0),(pady, pady),(0, 0)), \
+		img = np.pad (img, ((0,0),(extray + pady, pady),(0, 0)), \
 			mode='constant', constant_values=((0,0),(0,0),(0,0)))
 
 	if padz <0:
-		img = img[:,:,-padz:padz]
+		img = img[:,:,-padz:padz+extraz]
 	else:
-		img = np.pad (img, ((0,0),(0, 0),(padz, padz)), \
+		img = np.pad (img, ((0,0),(0, 0),(extraz + padz, padz)), \
 			mode='constant', constant_values=((0,0),(0,0),(0,0)))
 
 	return img	
@@ -302,7 +304,14 @@ def find_body(label):
 				return os.path.join(r, file)
 	print('wrong label')
 
-
+def load_img_memory():
+	data = np.zeros((370, 1, 256, 256, 256))
+	label = np.zeros((370, 1, 256, 256, 256))
+	for i in tqdm(range(370)):
+		data[i], label[i] = load_img(i, mode='bv', shape=(256, 256, 256), verbose=False)
+    
+	return (data, label)
+    
 def load_img(idx, mode, shape, verbose=False):
 
 	'''

@@ -168,7 +168,7 @@ def AffineFun(img, xr, yr, zr, xm, ym, zm, s, DS, order):
 					[0, 1, 0, ym],
 					[0, 0, 1, zm],
 					[0 ,0, 0, 1]])
-	
+#	Matrix = np.linalg.multi_dot([Mc, Rx, Ry, Rz, Mb, MM])
 	Matrix = np.linalg.multi_dot([Mc, Ms, Rx, Ry, Rz, Mb, MM, MD])
 	imgout = affine_transform(img[0], Matrix, output_shape=(xout, yout, zout), order=order)
 	return imgout[None,:,:,:]
@@ -395,7 +395,7 @@ class DatasetBV(Dataset):
 	def __init__(self, index, transform=None):
 		self.index=index
 		self.transform=transform
-		
+        
 	def __len__(self):
 		'''
 		Override: return size of dataset
@@ -404,6 +404,9 @@ class DatasetBV(Dataset):
 
 	def __getitem__(self, indice):
 		# load_img(idx, mode, shape, verbose=False):
+#		image = self.datamem[self.index[indice]]
+#		label = self.labelmem[self.index[indice]]
+
 		image, label = load_img(indice, mode='bv', shape=(256, 256, 256), verbose=False)
 		sample = {'image':image, 'label':label}
 
