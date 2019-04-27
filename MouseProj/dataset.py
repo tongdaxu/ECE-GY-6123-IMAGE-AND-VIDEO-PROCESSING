@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset
 from scipy.ndimage import affine_transform
-from niiutility import loadnii
+from niiutility import *
 from numba import jit
 import time
 
@@ -55,6 +55,16 @@ def loadbvmask(img):
 
 	return np.array([x1, x2, y1, y2, z1, z2])
 
+def toTensorBV (sample):
+
+	# use if you use 370 BV image
+	
+	image, label = sample['image'], sample['label']
+	imageTensor = torch.from_numpy(image-0.25) # normalize the image by mean reduction, the mean=0.25 here 
+	labelTensor = torch.from_numpy(label) # no need to conduct anything special to it, I think
+	labelTensor = torch.round(labelTensor)
+
+	return {'image': imageTensor, 'label': labelTensor}
 
 def toTensor (sample):
 	'''
@@ -204,15 +214,9 @@ def downSampleFun(img, level, order):
 	if level == 1:
 		return img
 	else:
-		_, x, y, z = img.shape
 
-		imgout = np.zeros([1, x//level, y//level, z//level], dtype=np.float32)
-		Matrix = np.array([ [level, 0, 0, 0],
-							[0, level, 0, 0],
-							[0, 0, level, 0],
-							[0, 0, 0, 1]])
-		imgout[0] = affine_transform(img[0], Matrix, output_shape=imgout[0].shape, order=order)
-		return imgout
+		imgout = zoom(img[0], 1/level, order=order)
+		return imgout[None,:,:,:]
 
 class downSample(object):
 	'''
@@ -257,7 +261,7 @@ class RandomAffine(object):
 		s = np.random.uniform(1/self.fluS, self.fluS, size=1)
 
 		image, label = sample['image'], sample['label']
-		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, s, 2), \
+		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, s, 3), \
 				'label': AffineFun(label, xr, yr, zr, xm, ym, zm, s, 0)}
 
 class niiDataset(Dataset):
@@ -360,7 +364,7 @@ class BvMaskDataset(Dataset):
 
 		sample = toTensor(sample)
 		imageTensor = sample['image']
-		bvMask = sample['label'].narrow(0, 2, 1)
+		# bvMask = sample['label'].narrow(0, 2, 1)
 		# Get the image tensor
 		
 		# bodyMask = sample['label'].narrow(0, 1, 1)
@@ -368,6 +372,41 @@ class BvMaskDataset(Dataset):
 		# imageTensor = imageTensor - torch.mean(imageTensor)
 		# imageTensor = imageTensor*bodyMask
 		
+		sample = {'image':imageTensor, 'label':BBox}
+
+		return sample
+
+class DatasetBV(Dataset):
+	'''
+	Dataset obj to use when using 370 BV
+	'''
+	def __init__(self, index, transform=None):
+		self.index=index
+		self.transform=transform
+		
+	def __len__(self):
+		'''
+		Override: return size of dataset
+		'''
+		return (self.index).shape[0]
+
+	def __getitem__(self, indice):
+		# load_img(idx, mode, shape, verbose=False):
+		image, label = load_img(indice, mode='bv', shape=(256, 256, 256), verbose=False)
+		sample = {'image':image, 'label':label}
+
+		if self.transform:
+			sample = self.transform(sample)
+
+		# have to perform transform with data
+
+		BBox = loadbvmask(sample['label'])
+		BBox = torch.from_numpy(BBox)
+		# Get the BBox ground truth
+
+		sample = toTensor(sample)
+		imageTensor = sample['image']
+
 		sample = {'image':imageTensor, 'label':BBox}
 
 		return sample

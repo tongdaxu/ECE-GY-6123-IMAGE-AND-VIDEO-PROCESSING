@@ -95,7 +95,6 @@ def findBV(n):
 
 	return dict
 
-
 def generateSW(nlist):
 	dict = {}
 	for n in tqdm (nlist):
@@ -185,7 +184,7 @@ def show_image(img, label=None, indice=-1):
 	if indice ==-1:
 		indice = img.shape[1]//2
 
-	if label.any() != None:
+	if type(label) != type(None):
 		N = label.shape[0]
 		fig, ax = plt.subplots(1, N+1, figsize=(12, 4), sharey=True)
 		ax[0].imshow(img[0][indice], cmap='gray')
@@ -207,16 +206,15 @@ def show_batch_image(img, batchsize, label=None, indice=-1):
 	'''
 	img = img.numpy()
 	
-	if label != None:
+	if type(label) != type(None):
 		label = label.numpy()
 
 	for i in range(batchsize):
-		if label != None:
+		if type(label) != type(None):
 			show_image(img[i], label[i], indice)
 		else: 
 			show_image(img[i], None, indice)
 	pass
-
 
 def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=False):
 
@@ -310,6 +308,8 @@ def load_img(idx, mode, shape, verbose=False):
 	'''
 	int idx: index of image
 	str mode: mode of label
+		data = 1, X, Y, Z
+		label = 1, X, Y, Z
 	'''
 	idx = idx + 1
 
