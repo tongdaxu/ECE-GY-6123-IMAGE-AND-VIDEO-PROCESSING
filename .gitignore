@@ -11,6 +11,8 @@
 *.zip
 *.pytorch
 *.pth
+*.out
+*.sbatch
 
 CA04/data/
 
