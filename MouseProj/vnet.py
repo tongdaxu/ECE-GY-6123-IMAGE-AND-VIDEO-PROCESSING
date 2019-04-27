@@ -51,8 +51,8 @@ class LUConv(nn.Module):
 		return out
 
 class ResLUConv(nn.Module):
-
-	def __init__(nchan, elu):
+	# bottle neck component
+	def __init__(self, nchan, elu):
 		super(ResLUConv, self).__init__()
 		self.conv1 = nn.Conv3d(nchan, nchan, kernel_size=5, padding=2)
 		self.bn1 = nn.BatchNorm3d(nchan)
@@ -65,7 +65,7 @@ class ResLUConv(nn.Module):
 	def forward(self, x):
 
 		out = self.relu1(self.bn1(self.conv1(x)))
-		out = self.relu2(self.bn2(self.conv2(x)) + x)
+		out = self.relu2(self.bn2(self.conv2(out)) + x)
 
 		return out
 
@@ -74,7 +74,6 @@ def _make_rConv(nchan ,depth, elu):
 	for _ in range(depth):
 		layers.append(ResLUConv(nchan, elu))
 	return nn.Sequential(*layers)
-
 
 def _make_nConv(nchan, depth, elu):
 	'''
@@ -111,7 +110,7 @@ class DownTransition(nn.Module):
 	Notes:
 		* input -> conv/2-> bn -> relu -> X -> n*(conv3d->bn->relu) + X -> relu -> out
 	'''
-	def __init__(self, inChans, nConvs, elu, dropout=False):
+	def __init__(self, inChans, nConvs, elu, dropout=False, res=False):
 		super(DownTransition, self).__init__()
 		outChans = 2*inChans
 		self.down_conv = nn.Conv3d(inChans, outChans, kernel_size=2, stride=2)
@@ -121,7 +120,11 @@ class DownTransition(nn.Module):
 		self.relu2 = ELUCons(elu, outChans)
 		if dropout:
 			self.do1 = nn.Dropout3d()
-		self.ops = _make_nConv(outChans, nConvs, elu)
+
+		if res:
+			self.ops = _make_rConv(outChans, nConvs, elu)
+		else:
+			self.ops = _make_nConv(outChans, nConvs, elu)
 
 	def forward(self, x):
 		down = self.relu1(self.bn1(self.down_conv(x)))
@@ -206,11 +209,12 @@ class LNet(nn.Module):
 		x, y, z = img_size
 
 		self.in_tr = InputTransition(16, elu)
-		self.down_tr32 = DownTransition(16, 2, elu, dropout=True) # /2
-		self.down_tr64 = DownTransition(32, 3, elu, dropout=True) # /4
+		self.down_tr32 = DownTransition(16, 2, elu, dropout=False) # /2
+		self.down_tr64 = DownTransition(32, 3, elu, dropout=False) # /4
 		self.down_tr128 = DownTransition(64, 3, elu, dropout=True) # /8
 		self.down_tr256 = DownTransition(128, 3, elu, dropout=True) # /16
-		self.down_tr512 = DownTransition(256, 6, elu, dropout=True) # /32
+		self.down_tr512 = DownTransition(256, 4, elu, dropout=True, res=True) # /32
+
 		self.gap = nn.AvgPool3d(kernel_size = (x//32,y//32,z//32)) # N, C, 1, 1, 1
 
 		channel_num = 512
