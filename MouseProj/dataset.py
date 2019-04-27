@@ -60,8 +60,8 @@ def toTensorBV (sample):
 	# use if you use 370 BV image
 	
 	image, label = sample['image'], sample['label']
-	imageTensor = torch.from_numpy(image-0.25) # normalize the image by mean reduction, the mean=0.25 here 
-	labelTensor = torch.from_numpy(label) # no need to conduct anything special to it, I think
+	imageTensor = torch.from_numpy(((image-0.25)*256).copy()) # normalize the image by mean reduction, the mean=0.25 here 
+	labelTensor = torch.from_numpy(label.copy()) # no need to conduct anything special to it, I think
 	labelTensor = torch.round(labelTensor)
 
 	return {'image': imageTensor, 'label': labelTensor}
@@ -97,7 +97,7 @@ def toTensor (sample):
 
 	return {'image': imageTensor, 'label': labelTensor}
 
-def AffineFun(img, xr, yr, zr, xm, ym, zm, s, order):
+def AffineFun(img, xr, yr, zr, xm, ym, zm, s, DS, order):
 	'''
 	Notes:
 		Rotate and move
@@ -122,6 +122,12 @@ def AffineFun(img, xr, yr, zr, xm, ym, zm, s, order):
 	xc = img[0].shape[0]//2
 	yc = img[0].shape[1]//2
 	zc = img[0].shape[2]//2
+    
+	xout = np.round(img[0].shape[0]/DS).astype(np.int16)
+	yout = np.round(img[0].shape[1]/DS).astype(np.int16)
+	zout = np.round(img[0].shape[2]/DS).astype(np.int16)
+    
+	imgout = np.zeros((xout, yout, zout))
 
 	Mc = np.array([ [1, 0, 0, xc],
 					[0, 1, 0, yc],
@@ -132,7 +138,12 @@ def AffineFun(img, xr, yr, zr, xm, ym, zm, s, order):
 					[0, 1/s, 0, 0],
 					[0, 0, 1/s, 0], 
 					[0, 0, 0, 1]])
-	
+    
+	MD = np.array([ [DS, 0, 0, 0],
+					[0, DS, 0, 0],
+					[0, 0, DS, 0], 
+					[0, 0, 0, 1]])
+    
 	Rx = np.array([ [cosx, sinx, 0, 0],
 					[-sinx, cosx, 0, 0],
 					[0, 0, 1, 0], 
@@ -158,9 +169,9 @@ def AffineFun(img, xr, yr, zr, xm, ym, zm, s, order):
 					[0, 0, 1, zm],
 					[0 ,0, 0, 1]])
 	
-	Matrix = np.linalg.multi_dot([Mc, Ms, Rx, Ry, Rz, Mb, MM])
-	img[0] = affine_transform(img[0], Matrix, output_shape=img[0].shape, order=order)
-	return img
+	Matrix = np.linalg.multi_dot([Mc, Ms, Rx, Ry, Rz, Mb, MM, MD])
+	imgout = affine_transform(img[0], Matrix, output_shape=(xout, yout, zout), order=order)
+	return imgout[None,:,:,:]
 
 def filpFun(img, x, y, z):
 	'''
@@ -248,11 +259,12 @@ class RandomAffine(object):
 	'''
 	Random rotation and move
 	'''
-	def __init__(self, fluR=0, fluM=0, fluS=1):
+	def __init__(self, fluR=0, fluM=0, fluS=1, DS=1):
 
 		self.fluR = fluR
 		self.fluM = fluM
 		self.fluS = fluS
+		self.DS = DS
 
 	def __call__(self, sample):
 
@@ -261,8 +273,8 @@ class RandomAffine(object):
 		s = np.random.uniform(1/self.fluS, self.fluS, size=1)
 
 		image, label = sample['image'], sample['label']
-		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, s, 3), \
-				'label': AffineFun(label, xr, yr, zr, xm, ym, zm, s, 0)}
+		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, s, self.DS, 3), \
+				'label': AffineFun(label, xr, yr, zr, xm, ym, zm, s, self.DS, 0)}
 
 class niiDataset(Dataset):
 	'''
@@ -404,7 +416,7 @@ class DatasetBV(Dataset):
 		BBox = torch.from_numpy(BBox)
 		# Get the BBox ground truth
 
-		sample = toTensor(sample)
+		sample = toTensorBV(sample)
 		imageTensor = sample['image']
 
 		sample = {'image':imageTensor, 'label':BBox}

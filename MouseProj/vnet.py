@@ -209,11 +209,11 @@ class LNet(nn.Module):
 		x, y, z = img_size
 
 		self.in_tr = InputTransition(16, elu)
-		self.down_tr32 = DownTransition(16, 2, elu, dropout=False) # /2
-		self.down_tr64 = DownTransition(32, 3, elu, dropout=False) # /4
+		self.down_tr32 = DownTransition(16, 2, elu, dropout=True) # /2
+		self.down_tr64 = DownTransition(32, 3, elu, dropout=True) # /4
 		self.down_tr128 = DownTransition(64, 3, elu, dropout=True) # /8
 		self.down_tr256 = DownTransition(128, 3, elu, dropout=True) # /16
-		self.down_tr512 = DownTransition(256, 4, elu, dropout=True, res=True) # /32, 8 res fcn layers
+		self.down_tr512 = DownTransition(256, 6, elu, dropout=True, res=True) # /32, 8 res fcn layers
 
 		self.gap = nn.AvgPool3d(kernel_size = (x//32,y//32,z//32)) # N, C, 1, 1, 1
 
@@ -238,7 +238,7 @@ class LNet(nn.Module):
 
 		out = self.fc1(out)
 		out = self.fc2(out)
-
+        
 		return out
 
 
