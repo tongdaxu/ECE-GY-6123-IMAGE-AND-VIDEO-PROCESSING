@@ -55,7 +55,7 @@ def loadckp (model, optimizer, scheduler, logger, filename, device):
 	print("loaded checkpoint '{}' (epoch {})"
 			  .format(filename, checkpoint['epoch']))
 
-def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFun, logger, epochs=1, startepoch=0):
+def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFun, logger, epochs=1, startepoch=0, usescheduler=False):
 	"""
 	Train a model with an optimizer
 	
@@ -68,7 +68,6 @@ def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFu
 	"""
 	model = model.to(device=device)  # move the model parameters to CPU/GPU
 	cirrculum = 0
-	model_save_path = 'checkpoint' + str(datetime.datetime.now())+'.pth'
 	N = len(traindata)
 	for e in range(epochs):
 		epoch_loss = 0
@@ -107,8 +106,10 @@ def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFu
 		logger['validation'].append(loss_val)
 
 		# Taking a scheduler step on validation loss
-		scheduler.step(loss_val)
-		   
+		if usescheduler:
+			scheduler.step(loss_val)
+		# else pass
+
 		# When validation loss < 0.1,upgrade cirrculum, reset scheduler
 		if loss_val < 0.1 and cirrculum <= 2:
 			cirrculum += 1
@@ -117,6 +118,7 @@ def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFu
 
 		if (e+startepoch)%50 == 0:
 			
+			model_save_path = 'checkpoint' + str(datetime.datetime.now())+'.pth'
 			state = {'epoch': e+startepoch + 1, 'state_dict': model.state_dict(),
 				'optimizer': optimizer.state_dict(), 'scheduler': scheduler.state_dict(), 'logger': logger}
 			torch.save(state, model_save_path)
