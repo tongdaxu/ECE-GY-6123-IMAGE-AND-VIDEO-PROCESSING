@@ -185,7 +185,7 @@ def show_image(img, label=None, indice=-1):
 	if indice ==-1:
 		indice = img.shape[1]//2
 
-	if label != None:
+	if label.any() != None:
 		N = label.shape[0]
 		fig, ax = plt.subplots(1, N+1, figsize=(12, 4), sharey=True)
 		ax[0].imshow(img[0][indice], cmap='gray')
@@ -268,3 +268,147 @@ def loadallnii(x, bad_index, target_x=-1, target_y=-1, target_z=-1, verbose=Fals
 
 	return (image, label)
 
+
+def find_bv(label):
+	'''
+	input: 
+		label: the unique part of file name
+	output: 
+		path to corresponding bv segmentation
+	'''
+
+	for r, d, f in os.walk('20180419_newdata_nii_with_filtered'):
+		for file in f:
+			if label in file and 'BV' in file:
+				return os.path.join(r, file)
+
+	for r, d, f in os.walk('new_data_20180522_nii'):
+		for file in f:
+			if label in file and 'BV' in file:
+				return os.path.join(r, file)
+
+	print('wrong label')
+
+
+def find_body(label):
+	'''
+	input: 
+		label: the unique part of file name
+	output: 
+		path to corresponding body segmentation
+	'''
+	
+	for r, d, f in os.walk('nii_test'):
+		for file in f:
+			if label in file and 'BODY' in file:
+				return os.path.join(r, file)
+	print('wrong label')
+
+
+def load_img(idx, mode, shape, verbose=False):
+
+	'''
+	int idx: index of image
+	str mode: mode of label
+	'''
+	idx = idx + 1
+
+	if mode == 'bv':
+		dataPth, labelPth = get_bv_tuple(idx)
+	elif mode == 'body':
+		print(idx)
+		dataPth, labelPth = get_body_tuple(idx)
+	else:
+		print('mode {} not supported'.format(mode))
+
+	assert dataPth != None
+
+	data = ((nib.load(dataPth)).get_fdata()).astype(np.float32)
+	label = ((nib.load(labelPth)).get_fdata()).astype(np.float32)
+
+	if mode == 'body':
+		label = label/2
+	#else pass
+
+	xout, yout, zout = shape
+
+	data = zero_padding(data, xout, yout, zout)
+	label = zero_padding(label, xout, yout, zout)
+
+	data = data.reshape(1, *data.shape)
+	label= label.reshape(1, *label.shape)
+
+	if verbose:
+		show_image(data, label)
+		pass
+	#else pass
+
+	return (data, label)
+
+
+def get_bv_tuple(idx):
+	'''
+	input: 
+		idx: index into all bv segmentations
+	output:
+		a tuple of path to original image and path to bv 
+	'''
+	
+	counter = 0
+	
+	for r, d, f in os.walk('20180419_newdata_nii_with_filtered'):
+		for file in f:
+			if 'BV' not in file and 'filtered' not in file and file[0]!='.':
+				counter += 1
+				if counter == idx: 
+					label = file[:-4]
+					bv_path = find_bv(label)
+					return ((os.path.join(r, file), bv_path))
+
+	for r, d, f in os.walk('new_data_20180522_nii'):
+		for file in f:
+			if 'BV' not in file and 'filtered' not in file and file[0]!='.':
+				counter += 1
+				if counter == idx: 
+					label = file[:-4]
+					bv_path = find_bv(label)
+					return ((os.path.join(r, file), bv_path))
+				
+	print('index out of range')
+
+def get_body_tuple(idx):
+	'''
+	input: 
+		idx: index into all body segmentations
+	output:
+		a tuple of path to original image and path to body 
+	'''
+	
+	counter = 0
+	
+	for r, d, f in os.walk('nii_test'):
+		for file in f:
+			if 'BODY' not in file and 'filtered' not in file and file[0]!='.':
+				counter += 1
+				if counter == idx: 
+					label = file[:-4]
+					body_path = find_body(label)
+					return ((os.path.join(r, file), body_path))
+
+				
+	print('index out of range')
+
+def bbox_scale(bbox, image):
+	'''
+	input: 
+		(x1,x2,y1,y2,z1,z3): bounding box
+		image: whole image
+	output:
+		a scaled image where the largest dimension of bounding box is 128
+	'''
+	x1, x2, y1, y2, z1, z2 = bbox
+	max_len = max([x1-x2, y1-y2, z1-z2])
+	
+	scale = 128.0/max_len
+	
+	return zoom(image, scale, mode='constant', cval=0)
