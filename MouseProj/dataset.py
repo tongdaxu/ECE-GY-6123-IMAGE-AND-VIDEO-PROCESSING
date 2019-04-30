@@ -97,6 +97,62 @@ def toTensor (sample):
 
 	return {'image': imageTensor, 'label': labelTensor}
 
+def AffineFunOld(img, xr, yr, zr, xm, ym, zm, order):
+	'''
+	Notes:
+		Rotate and move
+		MoveToCenter->RotateX->RotateY->RotateZ->MoveBack->MoveRandom
+	Args:
+		img: image of shape (C=1, X, Y, Z)
+		xr, yr, zr: Rotate in degree
+		xm, ym, zm: move as int
+		order: 3 for image, 0 for label
+	Ret:
+		img: Transformed image of shape (C=1, X, Y, Z)
+	'''
+	sinx = np.sin(np.deg2rad(xr))
+	cosx = np.cos(np.deg2rad(xr))
+
+	siny = np.sin(np.deg2rad(yr))
+	cosy = np.cos(np.deg2rad(yr))
+
+	sinz = np.sin(np.deg2rad(zr))
+	cosz = np.cos(np.deg2rad(zr))
+
+	xc = img[0].shape[0]//2
+	yc = img[0].shape[1]//2
+	zc = img[0].shape[2]//2
+
+	Mc = np.array([[1, 0, 0, xc],[0, 1, 0, yc],[0, 0, 1, zc],[0, 0, 0, 1]])
+	Rx = np.array([[cosx, sinx, 0, 1],[-sinx, cosx, 0, 1],[0, 0, 1, 1], [0, 0, 0, 1]])
+	Ry = np.array([[cosy, 0, siny, 1],[0, 1, 0, 1],[-siny, 0, cosy, 1], [0, 0, 0, 1]])
+	Rz = np.array([[1, 0, 0, 1],[0, cosz, sinz, 1],[0, -sinz, cosz, 1], [0, 0, 0, 1]])
+	Mb = np.array([[1, 0, 0, -xc],[0, 1, 0, -yc],[0, 0, 1, -zc],[0, 0, 0, 1]])
+	MM = np.array([[1, 0, 0, xm],[0, 1, 0, ym],[0, 0, 1, zm],[0 ,0, 0, 1]])
+
+	Matrix = np.linalg.multi_dot([Mc, Rx, Ry, Rz, Mb, MM])
+	img[0] = affine_transform(img[0], Matrix, output_shape=img[0].shape, order=order)
+
+	return img
+
+class RandomAffineOld(object):
+	'''
+	Random rotation and move
+	'''
+	def __init__(self, fluR, fluM):
+
+		self.fluR = fluR
+		self.fluM = fluM
+
+	def __call__(self, sample):
+
+		xr, yr, zr = np.random.uniform(-self.fluR, self.fluR, size=3)
+		xm, ym, zm = np.random.uniform(-self.fluM, self.fluM, size=3)
+
+		image, label = sample['image'], sample['label']
+		return {'image': AffineFunOld(image, xr, yr, zr, xm, ym, zm, 3), \
+				'label': AffineFunOld(label, xr, yr, zr, xm, ym, zm, 0)}
+
 def AffineFun(img, xr, yr, zr, xm, ym, zm, s, DS, order):
 	'''
 	Notes:
