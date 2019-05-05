@@ -48,7 +48,7 @@ def loadckp (model, optimizer, scheduler, logger, filename, device):
 	checkpoint = torch.load(filename)
 	start_epoch = checkpoint['epoch']
 	model.load_state_dict(checkpoint['state_dict'])
-	optimizer.load_state_dict(checkpoint['optimizer'])
+#	optimizer.load_state_dict(checkpoint['optimizer'])
 	scheduler.load_state_dict(checkpoint['scheduler'])
 	logger = checkpoint['logger']
 

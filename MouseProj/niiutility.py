@@ -12,7 +12,6 @@ data_path = 'img_'
 label_path = 'bv_body'
 appendix_str = '.nii'
 
-
 def loadnii(x, xout=-1, yout=-1, zout=-1, mode='pad'):
 
 	"""
@@ -152,6 +151,8 @@ def zero_padding (img, target_x, target_y, target_z):
 	extrax = int(img.shape[0]%2!=0)
 	extray = int(img.shape[1]%2!=0)
 	extraz = int(img.shape[2]%2!=0)
+    
+	maxdimension = np.max(img.shape)
 	if padx<0:
 		img = img[-padx:padx+extrax,:,:]
 	else:
@@ -170,7 +171,7 @@ def zero_padding (img, target_x, target_y, target_z):
 		img = np.pad (img, ((0,0),(0, 0),(extraz + padz, padz)), \
 			mode='constant', constant_values=((0,0),(0,0),(0,0)))
 
-	return img	
+	return img
 
 
 def show_image(img, label=None, indice=-1):
@@ -201,13 +202,13 @@ def show_image(img, label=None, indice=-1):
 
 	pass
 
+
 def show_batch_image(img, batchsize, label=None, indice=-1):
 	'''
 	show batch of Tensor as image
 
 	'''
 	img = img.numpy()
-	
 	if type(label) != type(None):
 		label = label.numpy()
 
@@ -338,7 +339,6 @@ def load_img(idx, mode, shape, verbose=False):
 	if mode == 'body':
 		label = label/2
 	#else pass
-
 	xout, yout, zout = shape
 
 	data = zero_padding(data, xout, yout, zout)
@@ -353,7 +353,6 @@ def load_img(idx, mode, shape, verbose=False):
 	#else pass
 
 	return (data, label)
-
 
 def get_bv_tuple(idx):
 	'''
