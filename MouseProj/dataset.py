@@ -344,7 +344,7 @@ class niiDataset(Dataset):
 			transform(callable, default=none): transfrom on a sample
 		'''
 
-		self.index=index		
+		self.index=index
 		self.transform=transform
 
 	def __len__(self):
@@ -479,7 +479,6 @@ class DatasetBVSeg(Dataset):
 
 		return sample
 
-
 class DatasetBV(Dataset):
 	'''
 	Dataset obj to use when using 370 BV
@@ -517,16 +516,13 @@ class DatasetBV(Dataset):
 
 		return sample
 
-class DatasetBVSeg(Dataset):
+class DatasetBVSegmentation(Dataset):
 	'''
-	Dataset obj to use when using 370 BV
+	Dataset obj to use when using 370 BV, with original image returned
 	'''
-	def __init__(self, index, RPN, device, dtype, transform=None):
+	def __init__(self, index, transform=None):
 		self.index=index
 		self.transform=transform
-		self.RPN=RPN
-		self.device=device
-		self.dtype=dtype
         
 	def __len__(self):
 		'''
@@ -535,38 +531,28 @@ class DatasetBVSeg(Dataset):
 		return (self.index).shape[0]
 
 	def __getitem__(self, indice):
-		# load_img(idx, mode, shape, verbose=False):
-#		image = self.datamem[self.index[indice]]
-#		label = self.labelmem[self.index[indice]]
 
 		image, label = load_img(indice, mode='bv', shape=(256, 256, 256), verbose=False)
 		sample = {'image':image, 'label':label}
 
-		# After Transfermation!
 		if self.transform:
 			sample = self.transform(sample)
-		# Both image and label Downsample by 2 and Augumented
-		imageLoc = sample['image']
-		imageLoc = imageLoc.view(1, 1, 128, 128, 128) # Reshape into (BatchSize, Channel, X, Y, Z)
-		imageLoc = imageLoc.to(device=self.device, dtype=self.dtype)
-
-		boxHat = self.RPN(imageLoc)
-		boxHat = boxHat.view(-1) # reshape into a 6 tensor
-
-		print(boxHat.size())
-		
+		# Down Sample by hand
 		# have to perform transform with data
-		Seg = sample['label']
-		BBox = loadbvmask(sample['label'])
-		BBox = torch.from_numpy(BBox)
-		# Get the BBox ground truth
-
-		sample = toTensorBV(sample) # Return ImageTensor, Segmentation
-		imageTensor = sample['image']
-
-		sample = {'image':imageTensor, 'label':BBox}
+		imageTrans = sample['image']
+		labelTrans = sample['label']
+		imageHalf = downSampleFun(imageTrans, 2, 3)
+        
+		imageTensor = torch.from_numpy(((imageTrans-0.25)*256).copy())
+		imageHalfTensor = torch.from_numpy(((imageHalf-0.25)*256).copy())
+        
+		labelTensor = torch.from_numpy(labelTrans.copy()) # no need to conduct anything special to it, I think
+		labelTensor = torch.round(labelTensor)
+        
+		sample = {'image':imageTensor, 'label':labelTensor, 'half':imageHalfTensor}
 
 		return sample
+
 
 class niiPatchDataset(Dataset):
 	'''

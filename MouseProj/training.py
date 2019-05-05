@@ -123,7 +123,7 @@ def train(model, traindata, valdata, optimizer, scheduler, device, dtype, lossFu
 				'optimizer': optimizer.state_dict(), 'scheduler': scheduler.state_dict(), 'logger': logger}
 			torch.save(state, model_save_path)
 			print('Checkpoint {} saved !'.format(e+startepoch + 1))
-		
+
 def check_accuracy(model, dataloader, device, dtype, cirrculum, lossFun):
 	model.eval()  # set model to evaluation mode
 	with torch.no_grad():
@@ -143,7 +143,6 @@ def check_accuracy(model, dataloader, device, dtype, cirrculum, lossFun):
 
 def check_img(model, dataloader, device, dtype, cirrculum, lossFun, data_index):
 	model.eval()  # set model to evaluation mode
-
 
 	with torch.no_grad():
 
