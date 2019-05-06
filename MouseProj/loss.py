@@ -91,12 +91,12 @@ def dice_coeff(input, target):
 	return torch.mean(dice_coefficient)
 
 
-def dice_loss(input, target, channel):
+def dice_loss(input, target, cirrculum):
 	'''
 	Single class soft dice loss with specified channel
 	input: (N, C, X, Y, Z), channel < C
 	'''
-	return 1 - dice_coeff(input.narrow(1, channel, 1), target.narrow(1, channel, 1))
+	return 1 - dice_coeff(input.narrow(1, cirrculum, 1), target.narrow(1, cirrculum, 1))
 
 def dice_loss_2(input, target, cirrculum):
 	'''
