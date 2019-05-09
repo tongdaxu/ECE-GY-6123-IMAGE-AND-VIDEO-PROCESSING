@@ -150,7 +150,7 @@ class RandomAffineOld(object):
 		xm, ym, zm = np.random.uniform(-self.fluM, self.fluM, size=3)
 
 		image, label = sample['image'], sample['label']
-		return {'image': AffineFunOld(image, xr, yr, zr, xm, ym, zm, 3), \
+		return {'image': AffineFunOld(image, xr, yr, zr, xm, ym, zm, 1), \
 				'label': AffineFunOld(label, xr, yr, zr, xm, ym, zm, 0)}
 
 def AffineFun(img, xr, yr, zr, xm, ym, zm, s, DS, order):
@@ -297,7 +297,7 @@ class downSample(object):
 	def __call__(self, sample):
 
 		image, label = sample['image'], sample['label']
-		return {'image': downSampleFun(image, self.level, 3), \
+		return {'image': downSampleFun(image, self.level, 1), \
 				'label': downSampleFun(label, self.level, 0)}
 
 class RandomFilp(object):
@@ -329,7 +329,7 @@ class RandomAffine(object):
 		s = np.random.uniform(1/self.fluS, self.fluS, size=1)
 
 		image, label = sample['image'], sample['label']
-		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, s, self.DS, 3), \
+		return {'image': AffineFun(image, xr, yr, zr, xm, ym, zm, s, self.DS, 1), \
 				'label': AffineFun(label, xr, yr, zr, xm, ym, zm, s, self.DS, 0)}
 
 class niiDataset(Dataset):
@@ -532,7 +532,7 @@ class DatasetBVSegmentation(Dataset):
 
 	def __getitem__(self, indice):
 
-		image, label = load_img(indice, mode='bv', shape=(256, 256, 256), verbose=False)
+		image, label = load_img(self.index[indice], mode='bv', shape=(256, 256, 256), verbose=False)
 		sample = {'image':image, 'label':label}
 
 		if self.transform:
