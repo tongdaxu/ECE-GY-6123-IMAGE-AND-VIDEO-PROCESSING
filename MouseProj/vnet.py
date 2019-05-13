@@ -223,8 +223,7 @@ class LNet(nn.Module):
 		self.fc2 = nn.Linear(channel_num, out_size)
 
 	def forward(self, x):
-
-		batch_size = x.size()[0] # get batch size
+		batch_size = x.size(0) # get batch size
 
 		out = self.in_tr(x)
 		out = self.down_tr32(out)
