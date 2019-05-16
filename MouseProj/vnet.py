@@ -240,6 +240,48 @@ class LNet(nn.Module):
         
 		return out
 
+class LNetNew(nn.Module):
+	'''
+	Half V Net
+	'''
+	def __init__(self, img_size, out_size=3, elu=True):
+		'''
+		Args:
+			* slim: using few conv layers, else as original paper
+			* elu: using elu / PReLU
+		'''
+		super(LNet, self).__init__()
+
+		x, y, z = img_size
+
+		self.in_tr = InputTransition(8, elu)
+		self.down_tr32 = DownTransition(8, 2, elu, dropout=True) # /2
+		self.down_tr64 = DownTransition(16, 2, elu, dropout=True) # /4
+		self.down_tr128 = DownTransition(32, 2, elu, dropout=True) # /8
+		self.down_tr256 = DownTransition(64, 2, elu, dropout=True) # /16
+		self.down_tr512 = DownTransition(128, 3, elu, dropout=True, res=True) # /32 = 4
+
+		channel_num = 256*4*4*4
+
+		self.fc1 = FCRB(channel_num, out_size)
+
+	def forward(self, x):
+
+		batch_size = x.size(0) # get batch size
+
+		out = self.in_tr(x)
+		out = self.down_tr32(out)
+		out = self.down_tr64(out)
+		out = self.down_tr128(out)
+		out = self.down_tr256(out)
+		out = self.down_tr512(out)
+
+		out = out.view(batch_size, -1)
+
+		out = self.fc1(out)
+        
+		return out
+
 
 class DVNet(nn.Module):
 	'''
@@ -335,7 +377,6 @@ class VNet(nn.Module):
 			out = self.up_tr64(out, out32)
 			out = self.up_tr32(out, out16)
 			out = self.out_tr(out)
-
 
 		else:
 			pass

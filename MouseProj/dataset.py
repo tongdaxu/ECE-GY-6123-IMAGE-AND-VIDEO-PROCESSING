@@ -6,6 +6,20 @@ from niiutility import *
 from numba import jit
 import time
 
+def loadbvcenter(img):
+	'''
+	get the bv center
+	'''
+	bvmask = loadbvmask(img)
+	
+	bvcenter = np.zeros(3)
+	
+	bvcenter[0] = np.mean(bvmask[0:2])
+	bvcenter[1] = np.mean(bvmask[2:4])
+	bvcenter[2] = np.mean(bvmask[4:6])
+
+	return bvcenter
+
 def loadbvmask(img):
 	'''
 	Truely stupid and brutal force way to Find mask of BV

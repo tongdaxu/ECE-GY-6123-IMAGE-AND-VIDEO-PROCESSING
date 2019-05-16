@@ -13,6 +13,7 @@
 *.pth
 *.out
 *.sbatch
+*.png
 
 CA04/data/
 
