@@ -519,7 +519,7 @@ class DatasetBV(Dataset):
 			sample = self.transform(sample)
 
 		# have to perform transform with data
-		BBox = loadbvmask(sample['label'])
+		BBox = loadbvcenter(sample['label'])
 		BBox = torch.from_numpy(BBox)
 		# Get the BBox ground truth
 

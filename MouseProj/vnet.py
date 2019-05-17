@@ -250,7 +250,7 @@ class LNetNew(nn.Module):
 			* slim: using few conv layers, else as original paper
 			* elu: using elu / PReLU
 		'''
-		super(LNet, self).__init__()
+		super(LNetNew, self).__init__()
 
 		x, y, z = img_size
 
@@ -259,9 +259,10 @@ class LNetNew(nn.Module):
 		self.down_tr64 = DownTransition(16, 2, elu, dropout=True) # /4
 		self.down_tr128 = DownTransition(32, 2, elu, dropout=True) # /8
 		self.down_tr256 = DownTransition(64, 2, elu, dropout=True) # /16
-		self.down_tr512 = DownTransition(128, 3, elu, dropout=True, res=True) # /32 = 4
+		self.down_tr512 = DownTransition(128, 2, elu, dropout=True) # /32 = 4
+		self.down_tr1024 = DownTransition(256, 3, elu, dropout=True, res=True) # /64 = 2
 
-		channel_num = 256*4*4*4
+		channel_num = 512*2*2*2
 
 		self.fc1 = FCRB(channel_num, out_size)
 
@@ -275,6 +276,7 @@ class LNetNew(nn.Module):
 		out = self.down_tr128(out)
 		out = self.down_tr256(out)
 		out = self.down_tr512(out)
+		out = self.down_tr1024(out)
 
 		out = out.view(batch_size, -1)
 
